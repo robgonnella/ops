@@ -94,7 +94,13 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 		Data: datatypes.JSON(dataBytes),
 	}
 
-	if result := r.db.Create(confModel); result.Error != nil {
+	// create or update
+	result := r.db.
+		Where(&ConfigModel{Name: confModel.Name}).
+		Assign(confModel).
+		FirstOrCreate(confModel)
+
+	if result.Error != nil {
 		return nil, result.Error
 	}
 

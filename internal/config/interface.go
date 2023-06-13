@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"gorm.io/datatypes"
-	"gorm.io/gorm"
 )
 
 // SSHOverride represents the config needed to
@@ -30,12 +29,9 @@ type Config struct {
 }
 
 type ConfigModel struct {
-	Name      string `gorm:"primaryKey"`
-	Data      datatypes.JSON
-	Loaded    time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Name   string `gorm:"primaryKey"`
+	Data   datatypes.JSON
+	Loaded time.Time
 }
 
 type Repo interface {

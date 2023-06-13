@@ -62,6 +62,7 @@ func newView(app *app) *view {
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
 	contextTable := component.NewConfigContext(
+		v.app.appCore.Conf().Name,
 		allConfigs,
 		v.onContextSelect,
 		v.onContextDelete,

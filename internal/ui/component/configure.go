@@ -111,8 +111,12 @@ func NewConfigureForm(conf config.Config, onSubmit func(conf config.Config)) *Co
 	form.SetBorder(true)
 	form.SetBorderColor(style.ColorPurple)
 	form.SetFieldBackgroundColor(tcell.ColorDefault)
-	form.SetButtonBackgroundColor(style.ColorMediumGreen)
-	form.SetButtonTextColor(style.ColorWhite)
+	form.SetButtonBackgroundColor(style.ColorLightGreen)
+	form.SetLabelColor(style.ColorOrange)
+	form.SetButtonTextColor(style.ColorBlack)
+	form.SetButtonActivatedStyle(
+		style.StyleDefault.Background(style.ColorLightGreen),
+	)
 
 	return &ConfigureForm{root: form}
 }

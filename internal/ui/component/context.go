@@ -7,13 +7,14 @@ import (
 	"github.com/rivo/tview"
 	"github.com/robgonnella/opi/internal/config"
 	"github.com/robgonnella/opi/internal/ui/key"
+	"github.com/robgonnella/opi/internal/ui/style"
 )
 
 type ConfigContext struct {
 	root *tview.Table
 }
 
-func NewConfigContext(confs []*config.Config, onSelect func(name string), onDelete func(name string)) *ConfigContext {
+func NewConfigContext(current string, confs []*config.Config, onSelect func(name string), onDelete func(name string)) *ConfigContext {
 	colHeaders := []string{"Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
@@ -52,6 +53,11 @@ func NewConfigContext(confs []*config.Config, onSelect func(name string), onDele
 			cell := tview.NewTableCell(text)
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)
+
+			if name == current {
+				cell.SetTextColor(style.ColorOrange)
+			}
+
 			table.SetCell(rowIdx+2, col, cell)
 		}
 	}
