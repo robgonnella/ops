@@ -84,6 +84,26 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 	return nil
 }
 
+func (c *Core) SetConfig(name string) error {
+	conf, err := c.configService.Get(name)
+
+	if err != nil {
+		return err
+	}
+
+	c.conf = *conf
+
+	return nil
+}
+
+func (c *Core) DeleteConfig(name string) error {
+	return c.configService.Delete(name)
+}
+
+func (c *Core) GetConfigs() ([]*config.Config, error) {
+	return c.configService.GetAll()
+}
+
 func (c *Core) BackgroundRestart() error {
 	c.Stop()
 

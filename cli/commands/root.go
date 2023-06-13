@@ -1,15 +1,13 @@
 package commands
 
 import (
-	"github.com/robgonnella/opi/internal/core"
 	"github.com/robgonnella/opi/internal/ui"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
 
 type CommandProps struct {
-	Core *core.Core
-	UI   *ui.UI
+	UI *ui.UI
 }
 
 // flag var to set verbose logging
@@ -46,7 +44,7 @@ func Root(props *CommandProps) *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Show debug logs")
 	cmd.PersistentFlags().BoolVar(&silent, "silent", false, "disables all logging")
 
-	cmd.AddCommand(clean(props))
+	cmd.AddCommand(clean())
 
 	return cmd
 }

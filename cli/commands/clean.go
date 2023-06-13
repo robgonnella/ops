@@ -9,7 +9,7 @@ import (
 )
 
 // creates and returns the "monitor" command
-func clean(props *CommandProps) *cobra.Command {
+func clean() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clean",
 		Short: "Clears the database file",

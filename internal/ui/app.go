@@ -133,8 +133,8 @@ func (a *app) stop() {
 	a.cancel = nil
 }
 
-func restart(appCore *core.Core) error {
-	newUI := New(appCore)
+func restart() error {
+	newUI := New()
 	return newUI.Launch()
 }
 

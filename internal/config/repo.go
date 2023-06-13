@@ -51,6 +51,32 @@ func (r *SqliteRepo) Get(name string) (*Config, error) {
 	return conf, nil
 }
 
+// GetAll returns all configs in db
+func (r *SqliteRepo) GetAll() ([]*Config, error) {
+	confModels := []ConfigModel{}
+
+	if result := r.db.Find(&confModels); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, exception.ErrRecordNotFound
+		}
+
+		return nil, result.Error
+	}
+
+	confs := []*Config{}
+
+	for _, m := range confModels {
+		c := &Config{}
+		if err := json.Unmarshal([]byte(m.Data.String()), c); err != nil {
+			return nil, err
+		}
+
+		confs = append(confs, c)
+	}
+
+	return confs, nil
+}
+
 // Create creates a new config in db
 func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 	if conf.Name == "" {
@@ -97,6 +123,15 @@ func (r *SqliteRepo) Update(conf *Config) (*Config, error) {
 	}
 
 	return r.Get(conf.Name)
+}
+
+// Delete deletes a config from db
+func (r *SqliteRepo) Delete(name string) error {
+	if name == "" {
+		return errors.New("config name cannot be empty")
+	}
+
+	return r.db.Delete(&ConfigModel{Name: name}).Error
 }
 
 // LastLoaded returns the most recently loaded config

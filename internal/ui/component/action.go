@@ -3,16 +3,17 @@ package component
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/robgonnella/opi/internal/ui/key"
 	"github.com/robgonnella/opi/internal/ui/style"
 )
 
 type ActionInput struct {
 	root     *tview.InputField
 	showing  bool
-	OnSubmit func(text string)
+	onSubmit func(text string)
 }
 
-func NewActionInput() *ActionInput {
+func NewActionInput(onSubmit func(text string)) *ActionInput {
 
 	input := tview.NewInputField()
 	input.SetBorder(true)
@@ -24,24 +25,21 @@ func NewActionInput() *ActionInput {
 	})
 
 	ai := &ActionInput{
-		root:    input,
-		showing: false,
+		root:     input,
+		showing:  false,
+		onSubmit: onSubmit,
 	}
 
-	ai.setDoneFunc()
+	ai.root.SetDoneFunc(func(k tcell.Key) {
+		if k == key.KeyEnter {
+			ai.onSubmit(ai.root.GetText())
+			ai.root.SetText("")
+		}
+	})
 
 	return ai
 }
 
 func (i *ActionInput) Primitive() tview.Primitive {
 	return i.root
-}
-
-func (i *ActionInput) setDoneFunc() {
-	i.root.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEnter && i.OnSubmit != nil {
-			i.OnSubmit(i.root.GetText())
-			i.root.SetText("")
-		}
-	})
 }

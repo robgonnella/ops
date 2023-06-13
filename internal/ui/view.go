@@ -22,9 +22,11 @@ type view struct {
 	eventTable         *component.EventTable
 	actionInput        *component.ActionInput
 	configureForm      *component.ConfigureForm
+	contextTable       *component.ConfigContext
 	focused            tview.Primitive
 	focusedName        string
 	showingActionInput bool
+	viewNames          []string
 	logger             logger.Logger
 }
 
@@ -41,8 +43,11 @@ func newView(app *app) *view {
 	v := &view{
 		app:                app,
 		showingActionInput: false,
+		viewNames:          []string{"servers", "events", "configure", "context"},
 		logger:             log,
 	}
+
+	allConfigs, _ := v.app.appCore.GetConfigs()
 
 	container := tview.NewFlex().SetDirection(tview.FlexRow)
 	pages := tview.NewPages()
@@ -51,11 +56,16 @@ func newView(app *app) *view {
 		strings.Join(v.app.appCore.Conf().Targets,
 			",",
 		),
-		[]string{"servers", "events", "configure"},
+		v.viewNames,
 	)
-	actionInput := component.NewActionInput()
+	actionInput := component.NewActionInput(v.onActionSubmit)
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
+	contextTable := component.NewConfigContext(
+		allConfigs,
+		v.onContextSelect,
+		v.onContextDelete,
+	)
 
 	configureForm := component.NewConfigureForm(
 		v.app.appCore.Conf(),
@@ -65,6 +75,7 @@ func newView(app *app) *view {
 	pages.AddPage("servers", serverTable.Primitive(), true, false)
 	pages.AddPage("events", eventTable.Primitive(), true, false)
 	pages.AddPage("configure", configureForm.Primitive(), true, false)
+	pages.AddPage("context", contextTable.Primitive(), true, false)
 
 	container.
 		AddItem(legend.Primitive(), 4, 1, false).
@@ -86,16 +97,10 @@ func newView(app *app) *view {
 	v.eventTable = eventTable
 	v.actionInput = actionInput
 	v.configureForm = configureForm
+	v.contextTable = contextTable
 
-	if len(v.app.appCore.Conf().Targets) == 0 {
-		v.focused = configureForm.Primitive()
-		v.focusedName = "configure"
-	} else {
-		v.focused = serverTable.Primitive()
-		v.focusedName = "servers"
-	}
-
-	actionInput.OnSubmit = v.onActionSubmit
+	v.focused = serverTable.Primitive()
+	v.focusedName = "servers"
 
 	v.focus()
 
@@ -130,19 +135,23 @@ func (v *view) hideActionInput() {
 }
 
 func (v *view) onActionSubmit(text string) {
-	if text == "servers" || text == "server" {
-		v.focused = v.serverTable.Primitive()
-		v.focusedName = "servers"
-	}
+	for _, name := range v.viewNames {
+		if strings.HasPrefix(name, text) {
+			v.focusedName = name
 
-	if text == "events" || text == "event" {
-		v.focused = v.eventTable.Primitive()
-		v.focusedName = "events"
-	}
+			switch name {
+			case "servers":
+				v.focused = v.serverTable.Primitive()
+			case "events":
+				v.focused = v.eventTable.Primitive()
+			case "configure":
+				v.focused = v.configureForm.Primitive()
+			case "context":
+				v.focused = v.contextTable.Primitive()
+			}
 
-	if text == "configure" {
-		v.focused = v.configureForm.Primitive()
-		v.focusedName = "configure"
+			break
+		}
 	}
 
 	v.focus()
@@ -155,7 +164,27 @@ func (v *view) onConfigureFormSubmit(conf config.Config) {
 	}
 
 	v.app.stop()
-	restart(v.app.appCore)
+	restart()
+}
+
+func (v *view) onContextSelect(name string) {
+	if err := v.app.appCore.SetConfig(name); err != nil {
+		v.logger.Error().Err(err).Msg("failed to set new config")
+		return
+	}
+
+	v.app.stop()
+	restart()
+}
+
+func (v *view) onContextDelete(name string) {
+	if err := v.app.appCore.DeleteConfig(name); err != nil {
+		v.logger.Error().Err(err).Msg("failed to delete config")
+		return
+	}
+
+	v.app.stop()
+	restart()
 }
 
 func (v *view) focus() {
@@ -167,7 +196,7 @@ func (v *view) onSSH(ip string) {
 	v.app.stop()
 
 	defer func() {
-		if err := restart(v.app.appCore); err != nil {
+		if err := restart(); err != nil {
 			v.logger.Error().Err(err).Msg("error restarting ui")
 		}
 	}()

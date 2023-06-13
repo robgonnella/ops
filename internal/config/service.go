@@ -12,12 +12,20 @@ func (s *ConfigService) Get(name string) (*Config, error) {
 	return s.repo.Get(name)
 }
 
+func (s *ConfigService) GetAll() ([]*Config, error) {
+	return s.repo.GetAll()
+}
+
 func (s *ConfigService) Create(conf *Config) (*Config, error) {
 	return s.repo.Create(conf)
 }
 
 func (s *ConfigService) Update(conf *Config) (*Config, error) {
 	return s.repo.Update(conf)
+}
+
+func (s *ConfigService) Delete(name string) error {
+	return s.repo.Delete(name)
 }
 
 func (s *ConfigService) LastLoaded() (*Config, error) {

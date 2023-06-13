@@ -40,14 +40,18 @@ type ConfigModel struct {
 
 type Repo interface {
 	Get(name string) (*Config, error)
+	GetAll() ([]*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
+	Delete(name string) error
 	LastLoaded() (*Config, error)
 }
 
 type Service interface {
 	Get(name string) (*Config, error)
+	GetAll() ([]*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
+	Delete(name string) error
 	LastLoaded() (*Config, error)
 }
