@@ -36,7 +36,8 @@ func NewNmapService(conf config.Config, serverService server.Service) (*NmapServ
 		ctxWithCancel,
 		nmap.WithTargets(conf.Targets...),
 		nmap.WithPorts("22"),
-		nmap.WithAggressiveScan(),
+		nmap.WithTimingTemplate(nmap.TimingFastest),
+		nmap.WithACKDiscovery(),
 		nmap.WithVerbosity(10),
 	)
 
