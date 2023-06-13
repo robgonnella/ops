@@ -10,7 +10,6 @@ import (
 
 // creates and returns the "monitor" command
 func clean(props *CommandProps) *cobra.Command {
-	var all bool
 	cmd := &cobra.Command{
 		Use:   "clean",
 		Short: "Clears the database file",
@@ -35,21 +34,9 @@ func clean(props *CommandProps) *cobra.Command {
 				log.Info().Msg("removed log file")
 			}
 
-			if all {
-				configFile := viper.Get("config-file").(string)
-
-				if err := os.RemoveAll(configFile); err != nil {
-					return err
-				}
-
-				log.Info().Msg("removed config file")
-			}
-
 			return nil
 		},
 	}
-
-	cmd.Flags().BoolVar(&all, "all", false, "Clean all including app config")
 
 	return cmd
 }

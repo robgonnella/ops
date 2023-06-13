@@ -12,12 +12,33 @@ import (
 	"github.com/robgonnella/opi/internal/config"
 	"github.com/robgonnella/opi/internal/core"
 	"github.com/robgonnella/opi/internal/discovery"
+	"github.com/robgonnella/opi/internal/exception"
 	"github.com/robgonnella/opi/internal/logger"
 	"github.com/robgonnella/opi/internal/name"
 	"github.com/robgonnella/opi/internal/server"
 	"github.com/robgonnella/opi/internal/ui"
 	"github.com/spf13/viper"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	gormLogger "gorm.io/gorm/logger"
 )
+
+// creates default config
+func getDefaultConfig() *config.Config {
+	user := viper.Get("user").(string)
+	identity := viper.Get("default-ssh-identity").(string)
+	cidr := viper.Get("default-cidr").(string)
+
+	return &config.Config{
+		Name: "default",
+		SSH: config.SSHConfig{
+			User:      user,
+			Identity:  identity,
+			Overrides: []config.SSHOverride{},
+		},
+		Targets: []string{cidr},
+	}
+}
 
 // get network interface associated with ip
 func getIPNetByIP(ip net.IP) (*net.IPNet, error) {
@@ -75,73 +96,115 @@ func getDefaultCidr() (*string, error) {
 	return &cidr, nil
 }
 
-func setConfigPaths() (string, error) {
+func getDbConnection(dbFile string) (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{
+		Logger: gormLogger.Default.LogMode(gormLogger.Silent),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.AutoMigrate(
+		&config.ConfigModel{},
+		&server.Server{},
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func setRuntTimeConfig() error {
 	userHomeDir, err := os.UserHomeDir()
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	configDir := path.Join(userHomeDir, ".config", name.APP_NAME)
 
 	if err := os.Mkdir(configDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-		return "", err
+		return err
 	}
-
-	configFile := path.Join(configDir, name.APP_NAME+".yml")
 
 	logFile := path.Join(configDir, name.APP_NAME+".log")
 
 	userCacheDir, err := os.UserCacheDir()
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	cacheDir := path.Join(userCacheDir, name.APP_NAME)
 
 	if err := os.Mkdir(cacheDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-		return "", err
+		return err
 	}
 
 	dbFile := path.Join(cacheDir, name.APP_NAME+".db")
 
-	// share location of files and directories globally using viper
+	defaultCidr, err := getDefaultCidr()
+
+	if err != nil {
+		return err
+	}
+
+	defaultSSHIdentity := path.Join(userHomeDir, ".ssh", "id_rsa")
+
+	user := os.Getenv("USER")
+
+	// share run-time config globally using viper
 	viper.Set("log-file", logFile)
 	viper.Set("config-dir", configDir)
-	viper.Set("config-file", configFile)
 	viper.Set("cache-dir", cacheDir)
 	viper.Set("database-file", dbFile)
+	viper.Set("default-cidr", *defaultCidr)
+	viper.Set("default-ssh-identity", defaultSSHIdentity)
+	viper.Set("user", user)
 
-	return configFile, nil
+	return nil
 }
 
 // Entry point for the cli.
 func main() {
 	log := logger.New()
 
-	configFile, err := setConfigPaths()
+	err := setRuntTimeConfig()
 
 	if err != nil {
 		log.Fatal().Err(err)
 	}
 
-	conf, err := config.New(configFile)
+	dbFile := viper.Get("database-file").(string)
+
+	db, err := getDbConnection(dbFile)
 
 	if err != nil {
-		conf, err = config.Default()
+		log.Fatal().Err(err).Msg("failed to open db connection")
+	}
 
-		if err != nil {
-			log.Fatal().Err(err)
+	configRepo := config.NewSqliteDatabase(db)
+	configService := config.NewConfigService(configRepo)
+
+	conf, err := configService.LastLoaded()
+
+	if err != nil {
+		if errors.Is(err, exception.ErrRecordNotFound) {
+			conf = getDefaultConfig()
+			conf, err = configService.Create(conf)
+
+			if err != nil {
+				log.Fatal().Err(err)
+			}
+		} else {
+			log.Fatal().Err(err).Msg("error loading config")
 		}
 	}
 
-	serverRepo, err := server.NewSqliteDatabase()
-
-	if err != nil {
-		log.Fatal().Err(err)
-	}
-
+	serverRepo := server.NewSqliteDatabase(db)
 	serverService := server.NewService(*conf, serverRepo)
 
 	discoveryService, err := discovery.NewNmapService(
@@ -153,21 +216,8 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	appCore := core.New(*conf, serverService, discoveryService)
-
-	defaultCidr := ""
-
-	if len(conf.Discovery.Targets) == 0 {
-		cidr, err := getDefaultCidr()
-
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to find default network cidr")
-		}
-
-		defaultCidr = *cidr
-	}
-
-	appUI := ui.New(appCore, defaultCidr)
+	appCore := core.New(*conf, configService, serverService, discoveryService)
+	appUI := ui.New(appCore)
 
 	// Get the "root" cobra cli command
 	cmd := commands.Root(&commands.CommandProps{

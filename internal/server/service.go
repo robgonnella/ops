@@ -8,6 +8,7 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/robgonnella/opi/internal/config"
 	"github.com/robgonnella/opi/internal/event"
+	"github.com/robgonnella/opi/internal/exception"
 	"github.com/robgonnella/opi/internal/logger"
 )
 
@@ -65,7 +66,7 @@ func (s *ServerService) GetAllServers() ([]*Server, error) {
 func (s *ServerService) AddOrUpdateServer(req *Server) error {
 	currentServer, err := s.repo.GetServerByID(req.ID)
 
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, exception.ErrRecordNotFound) {
 		// handle add case
 		updatedServer, err2 := s.repo.AddServer(req)
 
@@ -102,7 +103,7 @@ func (s *ServerService) AddOrUpdateServer(req *Server) error {
 func (s *ServerService) MarkServerOffline(ip string) error {
 	server, err := s.repo.GetServerByIP(ip)
 
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, exception.ErrRecordNotFound) {
 		// no server found - don't return error here as there's no need to
 		// mark a non-existent server as offline
 		return nil

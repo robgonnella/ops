@@ -26,6 +26,7 @@ type Core struct {
 	ctx                 context.Context
 	cancel              context.CancelFunc
 	conf                config.Config
+	configService       config.Service
 	discovery           discovery.Service
 	serverService       server.Service
 	logger              logger.Logger
@@ -36,7 +37,12 @@ type Core struct {
 }
 
 // New returns new core module for given configuration
-func New(conf config.Config, serverService server.Service, discovery discovery.Service) *Core {
+func New(
+	conf config.Config,
+	configService config.Service,
+	serverService server.Service,
+	discovery discovery.Service,
+) *Core {
 	logger := logger.New()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,6 +51,7 @@ func New(conf config.Config, serverService server.Service, discovery discovery.S
 		ctx:                 ctx,
 		cancel:              cancel,
 		conf:                conf,
+		configService:       configService,
 		discovery:           discovery,
 		serverService:       serverService,
 		evtListeners:        []*EventListener{},
@@ -65,10 +72,16 @@ func (c *Core) Conf() config.Config {
 	return c.conf
 }
 
-func (c *Core) SetConfig(conf config.Config) error {
-	c.conf = conf
+func (c *Core) UpdateConfig(conf config.Config) error {
+	updated, err := c.configService.Update(&conf)
 
-	return config.Write(c.conf)
+	if err != nil {
+		return err
+	}
+
+	c.conf = *updated
+
+	return nil
 }
 
 func (c *Core) BackgroundRestart() error {

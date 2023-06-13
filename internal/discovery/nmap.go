@@ -34,7 +34,7 @@ func NewNmapService(conf config.Config, serverService server.Service) (*NmapServ
 
 	scanner, err := nmap.NewScanner(
 		ctxWithCancel,
-		nmap.WithTargets(conf.Discovery.Targets...),
+		nmap.WithTargets(conf.Targets...),
 		nmap.WithPorts("22"),
 		nmap.WithAggressiveScan(),
 		nmap.WithVerbosity(10),
@@ -53,7 +53,7 @@ func NewNmapService(conf config.Config, serverService server.Service) (*NmapServ
 		logger:         log,
 		scanner:        scanner,
 		ansibleScanner: NewAnsibleIpScanner(conf),
-		targets:        conf.Discovery.Targets,
+		targets:        conf.Targets,
 	}, nil
 }
 

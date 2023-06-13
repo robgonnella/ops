@@ -3,14 +3,9 @@ package server
 import (
 	"errors"
 
-	"github.com/spf13/viper"
-	"gorm.io/driver/sqlite"
+	"github.com/robgonnella/opi/internal/exception"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
-
-// ErrNotFound custom database error for failure to find record
-var ErrNotFound = errors.New("record not found")
 
 // SqliteRepo is our repo implementation for sqlite
 type SqliteRepo struct {
@@ -18,26 +13,8 @@ type SqliteRepo struct {
 }
 
 // NewSqliteDatabase returns a new opi sqlite db
-func NewSqliteDatabase() (*SqliteRepo, error) {
-	filepath := viper.Get("database-file")
-
-	dbFile, ok := filepath.(string)
-
-	if !ok {
-		return nil, errors.New("failed to find database file path config")
-	}
-
-	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	db.AutoMigrate(&Server{})
-
-	return &SqliteRepo{db: db}, nil
+func NewSqliteDatabase(db *gorm.DB) *SqliteRepo {
+	return &SqliteRepo{db: db}
 }
 
 // GetAllServers returns all servers from the database
@@ -57,7 +34,7 @@ func (r *SqliteRepo) GetServerByID(serverID string) (*Server, error) {
 
 	if result := r.db.First(&server); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, exception.ErrRecordNotFound
 		}
 
 		return nil, result.Error
@@ -72,7 +49,7 @@ func (r *SqliteRepo) GetServerByIP(ip string) (*Server, error) {
 
 	if result := r.db.First(&server); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
+			return nil, exception.ErrRecordNotFound
 		}
 
 		return nil, result.Error

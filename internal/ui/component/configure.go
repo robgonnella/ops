@@ -26,28 +26,35 @@ func createOverrideInputs() (*tview.InputField, *tview.InputField, *tview.InputF
 	return overrideTarget, overrideSSHUser, overrideSSHIdentity
 }
 
-func NewConfigureForm(conf config.Config, defaultCidr string, onSubmit func(conf config.Config)) *ConfigureForm {
+func NewConfigureForm(conf config.Config, onSubmit func(conf config.Config)) *ConfigureForm {
 	overrides := []map[string]*tview.InputField{}
+
+	networkTargets := strings.Join(conf.Targets, ",")
+
+	configName := tview.NewInputField()
+	configName.SetLabel("Config Name: ")
+	configName.SetText(conf.Name)
 
 	sshUserInput := tview.NewInputField()
 	sshUserInput.SetLabel("SSH User: ")
-	sshUserInput.SetText(conf.Discovery.SSH.User)
+	sshUserInput.SetText(conf.SSH.User)
 
 	sshIdentityInput := tview.NewInputField()
 	sshIdentityInput.SetLabel("SSH Identity: ")
-	sshIdentityInput.SetText(conf.Discovery.SSH.Identity)
+	sshIdentityInput.SetText(conf.SSH.Identity)
 
 	cidrInput := tview.NewInputField()
 	cidrInput.SetLabel("Comma Separated CIDRs or IPs: ")
-	cidrInput.SetText(defaultCidr)
+	cidrInput.SetText(networkTargets)
 
 	form := tview.NewForm()
 	form.SetTitle("Configure Network Scanning")
+	form.AddFormItem(configName)
 	form.AddFormItem(cidrInput)
 	form.AddFormItem(sshUserInput)
 	form.AddFormItem(sshIdentityInput)
 
-	for _, o := range conf.Discovery.SSH.Overrides {
+	for _, o := range conf.SSH.Overrides {
 		target, user, identity := createOverrideInputs()
 
 		overrides = append(overrides, map[string]*tview.InputField{
@@ -76,8 +83,9 @@ func NewConfigureForm(conf config.Config, defaultCidr string, onSubmit func(conf
 	})
 
 	form.AddButton("OK", func() {
-		result := cidrInput.GetText()
-		targets := strings.Split(result, ",")
+		name := configName.GetText()
+		cidr := cidrInput.GetText()
+		targets := strings.Split(cidr, ",")
 		confOverrides := []config.SSHOverride{}
 
 		for _, o := range overrides {
@@ -90,15 +98,16 @@ func NewConfigureForm(conf config.Config, defaultCidr string, onSubmit func(conf
 			confOverrides = append(confOverrides, confOverride)
 		}
 
-		conf.Discovery.SSH.User = sshUserInput.GetText()
-		conf.Discovery.SSH.Identity = sshIdentityInput.GetText()
-		conf.Discovery.SSH.Overrides = confOverrides
-		conf.Discovery.Targets = targets
+		conf.Name = name
+		conf.SSH.User = sshUserInput.GetText()
+		conf.SSH.Identity = sshIdentityInput.GetText()
+		conf.SSH.Overrides = confOverrides
+		conf.Targets = targets
 
 		onSubmit(conf)
 	})
 
-	form.SetTitle("Configure Network Scanning")
+	form.SetTitle(conf.Name + " Configuration")
 	form.SetBorder(true)
 	form.SetBorderColor(style.ColorPurple)
 	form.SetFieldBackgroundColor(tcell.ColorDefault)

@@ -34,7 +34,4 @@ make opi
 
 ```bash
 ./build/opi clean
-
-# also clean opi.yml config file
-./build/opi clean --all
 ```

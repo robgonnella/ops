@@ -28,10 +28,10 @@ func (s *AnsibleIpScanner) GetServerDetails(ctx context.Context, ip string) (*An
 		return nil, err
 	}
 
-	user := s.conf.Discovery.SSH.User
-	identity := s.conf.Discovery.SSH.Identity
+	user := s.conf.SSH.User
+	identity := s.conf.SSH.Identity
 
-	for _, o := range s.conf.Discovery.SSH.Overrides {
+	for _, o := range s.conf.SSH.Overrides {
 		if o.Target == ip {
 			if o.User != "" {
 				user = o.User

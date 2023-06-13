@@ -17,9 +17,9 @@ type UI struct {
 var originalStdout = os.Stdout
 var originalStderr = os.Stderr
 
-func New(appCore *core.Core, defaultCidr string) *UI {
+func New(appCore *core.Core) *UI {
 	return &UI{
-		uiApp: newApp(appCore, defaultCidr),
+		uiApp: newApp(appCore),
 	}
 }
 

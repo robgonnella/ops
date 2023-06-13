@@ -48,7 +48,7 @@ func newView(app *app) *view {
 	pages := tview.NewPages()
 
 	legend := component.NewLegend(
-		strings.Join(v.app.appCore.Conf().Discovery.Targets,
+		strings.Join(v.app.appCore.Conf().Targets,
 			",",
 		),
 		[]string{"servers", "events", "configure"},
@@ -57,15 +57,8 @@ func newView(app *app) *view {
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
 
-	defaultCidr := v.app.defaultCidr
-
-	if defaultCidr == "" {
-		defaultCidr = strings.Join(v.app.appCore.Conf().Discovery.Targets, ",")
-	}
-
 	configureForm := component.NewConfigureForm(
 		v.app.appCore.Conf(),
-		defaultCidr,
 		v.onConfigureFormSubmit,
 	)
 
@@ -94,7 +87,7 @@ func newView(app *app) *view {
 	v.actionInput = actionInput
 	v.configureForm = configureForm
 
-	if len(v.app.appCore.Conf().Discovery.Targets) == 0 {
+	if len(v.app.appCore.Conf().Targets) == 0 {
 		v.focused = configureForm.Primitive()
 		v.focusedName = "configure"
 	} else {
@@ -157,19 +150,12 @@ func (v *view) onActionSubmit(text string) {
 }
 
 func (v *view) onConfigureFormSubmit(conf config.Config) {
-	v.legend.SetTargets(conf.Discovery.Targets)
-
-	if err := v.app.appCore.SetConfig(conf); err != nil {
+	if err := v.app.appCore.UpdateConfig(conf); err != nil {
 		v.logger.Error().Err(err).Msg("failed to write config file")
 	}
 
-	if err := v.app.appCore.BackgroundRestart(); err != nil {
-		v.logger.Error().Err(err).Msg("failed to restart network monitoring")
-	}
-
-	v.focused = v.serverTable.Primitive()
-	v.focusedName = "servers"
-	v.focus()
+	v.app.stop()
+	restart(v.app.appCore)
 }
 
 func (v *view) focus() {
@@ -178,19 +164,19 @@ func (v *view) focus() {
 }
 
 func (v *view) onSSH(ip string) {
-	v.app.pause()
+	v.app.stop()
 
 	defer func() {
-		if err := restart(v.app.appCore, v.app.defaultCidr); err != nil {
+		if err := restart(v.app.appCore); err != nil {
 			v.logger.Error().Err(err).Msg("error restarting ui")
 		}
 	}()
 
 	conf := v.app.appCore.Conf()
-	user := conf.Discovery.SSH.User
-	identity := conf.Discovery.SSH.Identity
+	user := conf.SSH.User
+	identity := conf.SSH.Identity
 
-	for _, o := range conf.Discovery.SSH.Overrides {
+	for _, o := range conf.SSH.Overrides {
 		if o.Target == ip {
 			if o.User != "" {
 				user = o.User

@@ -23,10 +23,9 @@ type app struct {
 	eventUpdateChan      chan *event.Event
 	serverPollListenerId int
 	eventListernId       int
-	defaultCidr          string
 }
 
-func newApp(appCore *core.Core, defaultCidr string) *app {
+func newApp(appCore *core.Core) *app {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	serverUpdateChan := make(chan []*server.Server, 100)
@@ -46,7 +45,6 @@ func newApp(appCore *core.Core, defaultCidr string) *app {
 		eventListernId:       eventListenerId,
 		serverUpdateChan:     serverUpdateChan,
 		eventUpdateChan:      eventUpdateChan,
-		defaultCidr:          defaultCidr,
 	}
 
 	view := newView(uiApp)
@@ -131,16 +129,12 @@ func (a *app) stop() {
 	a.cancel()
 	a.appCore.Stop()
 	a.tvApp.Stop()
-}
-
-func (a *app) pause() {
-	a.stop()
 	a.ctx = nil
 	a.cancel = nil
 }
 
-func restart(appCore *core.Core, defaultCidr string) error {
-	newUI := New(appCore, defaultCidr)
+func restart(appCore *core.Core) error {
+	newUI := New(appCore)
 	return newUI.Launch()
 }
 
