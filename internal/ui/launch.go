@@ -58,7 +58,7 @@ func getDbConnection(dbFile string) (*gorm.DB, error) {
 }
 
 type UI struct {
-	uiApp *app
+	view *view
 }
 
 var originalStdout = os.Stdout
@@ -132,10 +132,10 @@ func (u *UI) Launch() error {
 
 	appCore := core.New(*conf, configService, serverService, discoveryService)
 
-	u.uiApp = newApp(appCore)
+	u.view = newView(appCore)
 
 	os.Stdout, _ = os.Open(os.DevNull)
 	os.Stderr, _ = os.Open(os.DevNull)
 
-	return u.uiApp.run()
+	return u.view.run()
 }

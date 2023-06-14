@@ -1,37 +1,58 @@
 package ui
 
 import (
+	"context"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/robgonnella/opi/internal/config"
+	"github.com/robgonnella/opi/internal/core"
+	"github.com/robgonnella/opi/internal/event"
 	"github.com/robgonnella/opi/internal/logger"
+	"github.com/robgonnella/opi/internal/server"
 	"github.com/robgonnella/opi/internal/ui/component"
+	"github.com/robgonnella/opi/internal/ui/key"
 	"github.com/robgonnella/opi/internal/ui/style"
 )
 
-type view struct {
-	app                *app
-	root               *tview.Frame
-	container          *tview.Flex
-	pages              *tview.Pages
-	legend             *component.Legend
-	serverTable        *component.ServerTable
-	eventTable         *component.EventTable
-	actionInput        *component.ActionInput
-	configureForm      *component.ConfigureForm
-	contextTable       *component.ConfigContext
-	focused            tview.Primitive
-	focusedName        string
-	showingActionInput bool
-	viewNames          []string
-	logger             logger.Logger
+func restart() error {
+	newUI := New()
+	return newUI.Launch()
 }
 
-func newView(app *app) *view {
+type view struct {
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	app                  *tview.Application
+	root                 *tview.Frame
+	container            *tview.Flex
+	pages                *tview.Pages
+	legend               *component.Legend
+	serverTable          *component.ServerTable
+	eventTable           *component.EventTable
+	actionInput          *component.ActionInput
+	configureForm        *component.ConfigureForm
+	contextTable         *component.ConfigContext
+	appCore              *core.Core
+	serverUpdateChan     chan []*server.Server
+	eventUpdateChan      chan *event.Event
+	serverPollListenerId int
+	eventListernId       int
+	focused              tview.Primitive
+	focusedName          string
+	showingActionInput   bool
+	viewNames            []string
+	logger               logger.Logger
+}
+
+func newView(appCore *core.Core) *view {
 	log := logger.New()
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	const heading1 = " ██████╗ ██████╗ ██╗"
 	const heading2 = "██╔═══██╗██╔══██╗██║"
@@ -40,20 +61,25 @@ func newView(app *app) *view {
 	const heading5 = "╚██████╔╝██║     ██║"
 	const heading6 = " ╚═════╝ ╚═╝     ╚═╝"
 
+	app := tview.NewApplication()
+
 	v := &view{
+		ctx:                ctx,
+		cancel:             cancel,
+		appCore:            appCore,
 		app:                app,
 		showingActionInput: false,
 		viewNames:          []string{"servers", "events", "configure", "context"},
 		logger:             log,
 	}
 
-	allConfigs, _ := v.app.appCore.GetConfigs()
+	allConfigs, _ := v.appCore.GetConfigs()
 
 	container := tview.NewFlex().SetDirection(tview.FlexRow)
 	pages := tview.NewPages()
 
 	legend := component.NewLegend(
-		strings.Join(v.app.appCore.Conf().Targets,
+		strings.Join(v.appCore.Conf().Targets,
 			",",
 		),
 		v.viewNames,
@@ -62,14 +88,14 @@ func newView(app *app) *view {
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
 	contextTable := component.NewConfigContext(
-		v.app.appCore.Conf().Name,
+		v.appCore.Conf().Name,
 		allConfigs,
 		v.onContextSelect,
 		v.onContextDelete,
 	)
 
 	configureForm := component.NewConfigureForm(
-		v.app.appCore.Conf(),
+		v.appCore.Conf(),
 		v.onConfigureFormSubmit,
 	)
 
@@ -90,6 +116,12 @@ func newView(app *app) *view {
 		AddText(heading5, true, tview.AlignCenter, style.ColorPurple).
 		AddText(heading6, true, tview.AlignCenter, style.ColorPurple)
 
+	serverUpdateChan := make(chan []*server.Server, 100)
+	eventUpdateChan := make(chan *event.Event, 100)
+
+	serverPollListenerId := appCore.RegisterServerPollListener(serverUpdateChan)
+	eventListenerId := appCore.RegisterEventListener(eventUpdateChan)
+
 	v.root = frame
 	v.container = container
 	v.pages = pages
@@ -99,6 +131,10 @@ func newView(app *app) *view {
 	v.actionInput = actionInput
 	v.configureForm = configureForm
 	v.contextTable = contextTable
+	v.serverUpdateChan = serverUpdateChan
+	v.eventUpdateChan = eventUpdateChan
+	v.serverPollListenerId = serverPollListenerId
+	v.eventListernId = eventListenerId
 
 	v.focused = serverTable.Primitive()
 	v.focusedName = "servers"
@@ -122,7 +158,7 @@ func (v *view) showActionInput() {
 
 	v.container = newContainer
 	v.root.SetPrimitive(v.container)
-	v.app.tvApp.SetFocus(v.actionInput.Primitive())
+	v.app.SetFocus(v.actionInput.Primitive())
 	v.showingActionInput = !v.showingActionInput
 }
 
@@ -160,41 +196,69 @@ func (v *view) onActionSubmit(text string) {
 }
 
 func (v *view) onConfigureFormSubmit(conf config.Config) {
-	if err := v.app.appCore.UpdateConfig(conf); err != nil {
+	if err := v.appCore.UpdateConfig(conf); err != nil {
 		v.logger.Error().Err(err).Msg("failed to write config file")
 	}
 
-	v.app.stop()
+	v.stop()
 	restart()
 }
 
 func (v *view) onContextSelect(name string) {
-	if err := v.app.appCore.SetConfig(name); err != nil {
+	if err := v.appCore.SetConfig(name); err != nil {
 		v.logger.Error().Err(err).Msg("failed to set new config")
 		return
 	}
 
-	v.app.stop()
+	v.stop()
 	restart()
 }
 
 func (v *view) onContextDelete(name string) {
-	if err := v.app.appCore.DeleteConfig(name); err != nil {
+	if err := v.appCore.DeleteConfig(name); err != nil {
 		v.logger.Error().Err(err).Msg("failed to delete config")
 		return
 	}
 
-	v.app.stop()
+	v.stop()
 	restart()
+}
+
+func (v *view) bindKeys() {
+	v.app.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
+		switch evt.Key() {
+		case tcell.KeyCtrlC:
+			v.stop()
+			return evt
+		case tcell.KeyEsc:
+			if v.showingActionInput {
+				v.hideActionInput()
+				v.focus()
+				return nil
+			}
+		}
+
+		if evt.Rune() == key.RuneColon {
+			if v.showingActionInput {
+				return evt
+			}
+
+			v.showActionInput()
+
+			return nil
+		}
+
+		return evt
+	})
 }
 
 func (v *view) focus() {
 	v.pages.SwitchToPage(v.focusedName)
-	v.app.tvApp.SetFocus(v.focused)
+	v.app.SetFocus(v.focused)
 }
 
 func (v *view) onSSH(ip string) {
-	v.app.stop()
+	v.stop()
 
 	defer func() {
 		if err := restart(); err != nil {
@@ -202,7 +266,7 @@ func (v *view) onSSH(ip string) {
 		}
 	}()
 
-	conf := v.app.appCore.Conf()
+	conf := v.appCore.Conf()
 	user := conf.SSH.User
 	identity := conf.SSH.Identity
 
@@ -228,4 +292,63 @@ func (v *view) onSSH(ip string) {
 	cmd.Stdin = os.Stdin
 
 	cmd.Run()
+}
+
+func (v *view) stop() {
+	v.appCore.RemoveServerPollListener(v.serverPollListenerId)
+	v.appCore.RemoveEventListener(v.eventListernId)
+	v.cancel()
+	v.appCore.Stop()
+	v.app.Stop()
+	v.ctx = nil
+	v.cancel = nil
+}
+
+func (v *view) processBackgroundServerUpdates() {
+	go func() {
+		for {
+			select {
+			case <-v.ctx.Done():
+				return
+			case servers := <-v.serverUpdateChan:
+				v.app.QueueUpdateDraw(func() {
+					sort.Slice(servers, func(i, j int) bool {
+						if servers[i].Hostname == "unknown" {
+							return false
+						}
+						if servers[j].Hostname == "unknown" {
+							return true
+						}
+						return servers[i].Hostname < servers[j].Hostname
+					})
+					v.serverTable.UpdateTable(servers)
+				})
+			}
+		}
+	}()
+}
+
+func (v *view) processBackgroundEventUpdates() {
+	go func() {
+		for {
+			select {
+			case <-v.ctx.Done():
+				return
+			case evt := <-v.eventUpdateChan:
+				v.app.QueueUpdateDraw(func() {
+					v.eventTable.UpdateTable(evt)
+				})
+			}
+		}
+	}()
+}
+
+func (v *view) run() error {
+	v.bindKeys()
+	v.processBackgroundServerUpdates()
+	v.processBackgroundEventUpdates()
+	if err := v.appCore.BackgroundRestart(); err != nil {
+		return err
+	}
+	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
 }
