@@ -127,5 +127,5 @@ func (h *Header) setDefaultLegend() {
 
 	h.legendContainer.AddItem(h.legendCol1, 36, 1, false)
 	h.legendContainer.AddItem(h.legendCol2, 50, 1, false)
-	h.legendContainer.AddItem(h.legendCol3, 36, 1, false)
+	h.legendContainer.AddItem(h.legendCol3, 0, 1, false)
 }

@@ -29,7 +29,6 @@ type view struct {
 	app                  *tview.Application
 	root                 *tview.Flex
 	pages                *tview.Pages
-	extraLegend          map[string]string
 	header               *component.Header
 	serverTable          *component.ServerTable
 	eventTable           *component.EventTable
@@ -206,7 +205,16 @@ func (v *view) focus() {
 	case "servers":
 		extraLegend["ctrl+s"] = "ssh to selected machine"
 	case "context":
-		extraLegend["ctrl+d"] = "delete context"
+		confs, err := v.appCore.GetConfigs()
+
+		if err != nil {
+			v.logger.Error().Err(err).Msg("")
+		}
+
+		if err == nil && len(confs) > 1 {
+			extraLegend["enter"] = "select and scan using context configuration"
+			extraLegend["ctrl+d"] = "delete context"
+		}
 	}
 
 	v.header.RemoveExtraLegend()
