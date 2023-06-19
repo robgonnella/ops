@@ -11,14 +11,7 @@ func createTable(title string, columnHeaders []string) *tview.Table {
 		SetBorders(false).
 		SetFixed(2, 0).
 		SetSelectable(true, false).
-		SetSelectedStyle(style.StyleDefault.Foreground(style.ColorLightGreen).Bold(true))
-
-	table.SetSelectedFunc(func(row, col int) {
-		cell := table.GetCell(row, col)
-		if cell.Reference == "disabled" {
-			cell.SetStyle(style.StyleDefault.Bold(true))
-		}
-	})
+		SetSelectedStyle(style.StyleDefault.Background(style.ColorLightGreen).Bold(true))
 
 	table.SetBorder(true)
 

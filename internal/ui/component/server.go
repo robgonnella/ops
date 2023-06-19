@@ -25,7 +25,7 @@ func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	table := createTable("servers", columnHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
-		if evt.Rune() == key.RuneS {
+		if evt.Key() == key.KeyCtrlS {
 			row, _ := table.GetSelection()
 			ip := table.GetCell(row, 1).Text
 			OnSSH(ip)
@@ -70,7 +70,6 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 
 			if text == "disabled" || text == "offline" {
 				color = style.ColorDimGrey
-				cell.Reference = "disabled"
 			}
 
 			cell.SetTextColor(color)

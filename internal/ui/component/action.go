@@ -16,12 +16,16 @@ type ActionInput struct {
 func NewActionInput(onSubmit func(text string)) *ActionInput {
 
 	input := tview.NewInputField()
-	input.SetBorder(true)
 	input.SetFieldStyle(style.StyleDefault.Dim(true))
 	input.SetBorderPadding(0, 0, 1, 1)
 
 	input.SetFocusFunc(func() {
+		input.SetBorder(true)
 		input.SetBorderColor(style.ColorPurple)
+	})
+
+	input.SetBlurFunc(func() {
+		input.SetBorder(false)
 	})
 
 	ai := &ActionInput{

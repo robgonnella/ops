@@ -16,7 +16,6 @@ import (
 	"github.com/robgonnella/opi/internal/server"
 	"github.com/robgonnella/opi/internal/ui/component"
 	"github.com/robgonnella/opi/internal/ui/key"
-	"github.com/robgonnella/opi/internal/ui/style"
 )
 
 func restart() error {
@@ -28,13 +27,12 @@ type view struct {
 	ctx                  context.Context
 	cancel               context.CancelFunc
 	app                  *tview.Application
-	root                 *tview.Frame
-	container            *tview.Flex
+	root                 *tview.Flex
 	pages                *tview.Pages
-	legend               *component.Legend
+	extraLegend          map[string]string
+	header               *component.Header
 	serverTable          *component.ServerTable
 	eventTable           *component.EventTable
-	actionInput          *component.ActionInput
 	configureForm        *component.ConfigureForm
 	contextTable         *component.ConfigContext
 	appCore              *core.Core
@@ -44,7 +42,6 @@ type view struct {
 	eventListernId       int
 	focused              tview.Primitive
 	focusedName          string
-	showingActionInput   bool
 	viewNames            []string
 	logger               logger.Logger
 }
@@ -54,37 +51,23 @@ func newView(appCore *core.Core) *view {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	const heading1 = " ██████╗ ██████╗ ██╗"
-	const heading2 = "██╔═══██╗██╔══██╗██║"
-	const heading3 = "██║   ██║██████╔╝██║"
-	const heading4 = "██║   ██║██╔═══╝ ██║"
-	const heading5 = "╚██████╔╝██║     ██║"
-	const heading6 = " ╚═════╝ ╚═╝     ╚═╝"
-
 	app := tview.NewApplication()
 
 	v := &view{
-		ctx:                ctx,
-		cancel:             cancel,
-		appCore:            appCore,
-		app:                app,
-		showingActionInput: false,
-		viewNames:          []string{"servers", "events", "configure", "context"},
-		logger:             log,
+		ctx:       ctx,
+		cancel:    cancel,
+		appCore:   appCore,
+		app:       app,
+		viewNames: []string{"servers", "events", "context", "configure"},
+		logger:    log,
 	}
 
 	allConfigs, _ := v.appCore.GetConfigs()
 
-	container := tview.NewFlex().SetDirection(tview.FlexRow)
+	root := tview.NewFlex().SetDirection(tview.FlexRow)
 	pages := tview.NewPages()
 
-	legend := component.NewLegend(
-		strings.Join(v.appCore.Conf().Targets,
-			",",
-		),
-		v.viewNames,
-	)
-	actionInput := component.NewActionInput(v.onActionSubmit)
+	header := component.NewHeader(v.onActionSubmit)
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
 	contextTable := component.NewConfigContext(
@@ -104,17 +87,9 @@ func newView(appCore *core.Core) *view {
 	pages.AddPage("configure", configureForm.Primitive(), true, false)
 	pages.AddPage("context", contextTable.Primitive(), true, false)
 
-	container.
-		AddItem(legend.Primitive(), 4, 1, false).
+	root.
+		AddItem(header.Primitive(), 12, 1, false).
 		AddItem(pages, 0, 1, true)
-
-	frame := tview.NewFrame(container).
-		AddText(heading1, true, tview.AlignCenter, style.ColorPurple).
-		AddText(heading2, true, tview.AlignCenter, style.ColorPurple).
-		AddText(heading3, true, tview.AlignCenter, style.ColorPurple).
-		AddText(heading4, true, tview.AlignCenter, style.ColorPurple).
-		AddText(heading5, true, tview.AlignCenter, style.ColorPurple).
-		AddText(heading6, true, tview.AlignCenter, style.ColorPurple)
 
 	serverUpdateChan := make(chan []*server.Server, 100)
 	eventUpdateChan := make(chan *event.Event, 100)
@@ -122,13 +97,11 @@ func newView(appCore *core.Core) *view {
 	serverPollListenerId := appCore.RegisterServerPollListener(serverUpdateChan)
 	eventListenerId := appCore.RegisterEventListener(eventUpdateChan)
 
-	v.root = frame
-	v.container = container
+	v.root = root
 	v.pages = pages
-	v.legend = legend
+	v.header = header
 	v.serverTable = serverTable
 	v.eventTable = eventTable
-	v.actionInput = actionInput
 	v.configureForm = configureForm
 	v.contextTable = contextTable
 	v.serverUpdateChan = serverUpdateChan
@@ -142,33 +115,6 @@ func newView(appCore *core.Core) *view {
 	v.focus()
 
 	return v
-}
-
-func (v *view) showActionInput() {
-	if v.showingActionInput {
-		return
-	}
-
-	newContainer := tview.NewFlex().SetDirection(tview.FlexRow)
-
-	newContainer.
-		AddItem(v.legend.Primitive(), 4, 1, false).
-		AddItem(v.actionInput.Primitive(), 3, 1, false).
-		AddItem(v.pages, 0, 1, true)
-
-	v.container = newContainer
-	v.root.SetPrimitive(v.container)
-	v.app.SetFocus(v.actionInput.Primitive())
-	v.showingActionInput = !v.showingActionInput
-}
-
-func (v *view) hideActionInput() {
-	if !v.showingActionInput {
-		return
-	}
-
-	v.container.RemoveItem(v.actionInput.Primitive())
-	v.showingActionInput = !v.showingActionInput
 }
 
 func (v *view) onActionSubmit(text string) {
@@ -191,8 +137,8 @@ func (v *view) onActionSubmit(text string) {
 		}
 	}
 
+	v.header.HideSwitchViewInput()
 	v.focus()
-	v.hideActionInput()
 }
 
 func (v *view) onConfigureFormSubmit(conf config.Config) {
@@ -227,23 +173,24 @@ func (v *view) onContextDelete(name string) {
 func (v *view) bindKeys() {
 	v.app.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
 		switch evt.Key() {
-		case tcell.KeyCtrlC:
+		case key.KeyCtrlC:
 			v.stop()
 			return evt
-		case tcell.KeyEsc:
-			if v.showingActionInput {
-				v.hideActionInput()
+		case key.KeyEsc:
+			if v.header.IsShowingSwitchViewInput() {
+				v.header.HideSwitchViewInput()
 				v.focus()
 				return nil
 			}
 		}
 
 		if evt.Rune() == key.RuneColon {
-			if v.showingActionInput {
+			if v.header.IsShowingSwitchViewInput() {
 				return evt
 			}
 
-			v.showActionInput()
+			v.header.ShowSwitchViewInput()
+			v.app.SetFocus(v.header.SwitchViewInput().Primitive())
 
 			return nil
 		}
@@ -253,6 +200,18 @@ func (v *view) bindKeys() {
 }
 
 func (v *view) focus() {
+	extraLegend := map[string]string{}
+
+	switch v.focusedName {
+	case "servers":
+		extraLegend["ctrl+s"] = "ssh to selected machine"
+	case "context":
+		extraLegend["ctrl+d"] = "delete context"
+	}
+
+	v.header.RemoveExtraLegend()
+	v.header.ShowExtraLegend(extraLegend)
+
 	v.pages.SwitchToPage(v.focusedName)
 	v.app.SetFocus(v.focused)
 }

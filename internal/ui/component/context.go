@@ -19,7 +19,7 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 	table := createTable("Context", colHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
-		if evt.Rune() == key.RuneD {
+		if evt.Key() == key.KeyCtrlD {
 			row, _ := table.GetSelection()
 			name := table.GetCell(row, 0).Text
 			onDelete(name)
@@ -56,6 +56,9 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 
 			if name == current {
 				cell.SetTextColor(style.ColorOrange)
+				cell.SetSelectable(false)
+			} else {
+				cell.SetSelectable(true)
 			}
 
 			table.SetCell(rowIdx+2, col, cell)

@@ -4,10 +4,12 @@ import "github.com/gdamore/tcell/v2"
 
 const (
 	RuneColon = ':'
-	RuneD     = 'd'
-	RuneS     = 's'
 )
 
 const (
+	KeyCtrlC = tcell.KeyCtrlC
+	KeyCtrlD = tcell.KeyCtrlD
+	KeyCtrlS = tcell.KeyCtrlS
 	KeyEnter = tcell.KeyEnter
+	KeyEsc   = tcell.KeyEsc
 )
