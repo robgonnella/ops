@@ -11,6 +11,14 @@ $(PREFIX)/opi: $(go_deps)
 .PHONY: opi
 opi: $(PREFIX)/opi
 
+.PHONY: test
+test:
+	go test -v ./...
+
+.PHONY: mock
+mock:
+	go generate ./...
+
 .PHONY: clean
 clean:
 	rm -rf $(PREFIX)

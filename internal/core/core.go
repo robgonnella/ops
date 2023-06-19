@@ -104,24 +104,8 @@ func (c *Core) GetConfigs() ([]*config.Config, error) {
 	return c.configService.GetAll()
 }
 
-func (c *Core) BackgroundRestart() error {
-	c.Stop()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	c.ctx = ctx
-	c.cancel = cancel
-
-	newDiscovery, err := discovery.NewNmapService(c.conf, c.serverService)
-
-	if err != nil {
-		return err
-	}
-
-	c.discovery = newDiscovery
-
+func (c *Core) StartDaemon() {
 	go c.Monitor()
-
-	return nil
 }
 
 func (c *Core) RegisterEventListener(channel chan *event.Event) int {

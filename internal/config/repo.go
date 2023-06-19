@@ -15,8 +15,8 @@ type SqliteRepo struct {
 	db *gorm.DB
 }
 
-// NewSqliteDatabase returns a new opi sqlite db
-func NewSqliteDatabase(db *gorm.DB) *SqliteRepo {
+// NewSqliteRepo returns a new opi sqlite db
+func NewSqliteRepo(db *gorm.DB) *SqliteRepo {
 	return &SqliteRepo{db: db}
 }
 

@@ -2,6 +2,8 @@ package server
 
 import "github.com/robgonnella/opi/internal/event"
 
+//go:generate mockgen -destination=../mock/server/mock_server.go -package=mock_server . Repo,Service
+
 type Status string
 type SSHStatus string
 

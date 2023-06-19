@@ -100,7 +100,7 @@ func (u *UI) Launch() error {
 		log.Fatal().Err(err).Msg("failed to open db connection")
 	}
 
-	configRepo := config.NewSqliteDatabase(db)
+	configRepo := config.NewSqliteRepo(db)
 	configService := config.NewConfigService(configRepo)
 
 	conf, err := configService.LastLoaded()
@@ -118,19 +118,24 @@ func (u *UI) Launch() error {
 		}
 	}
 
-	serverRepo := server.NewSqliteDatabase(db)
+	serverRepo := server.NewSqliteRepo(db)
 	serverService := server.NewService(*conf, serverRepo)
 
-	discoveryService, err := discovery.NewNmapService(
-		*conf,
-		serverService,
-	)
+	netScanner, err := discovery.NewNmapScanner(conf.Targets)
 
 	if err != nil {
 		log.Fatal().Err(err)
 	}
 
-	appCore := core.New(*conf, configService, serverService, discoveryService)
+	detailScanner := discovery.NewAnsibleIpScanner(*conf)
+
+	scannerService := discovery.NewScannerService(
+		netScanner,
+		detailScanner,
+		serverService,
+	)
+
+	appCore := core.New(*conf, configService, serverService, scannerService)
 
 	u.view = newView(appCore)
 

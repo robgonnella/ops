@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/imdario/mergo"
 	"github.com/robgonnella/opi/internal/config"
@@ -143,8 +142,6 @@ func (s *ServerService) StopStream(id int) {
 
 // GetServer returns a single server from the database by ID if found
 func (s *ServerService) GetServer(id string) (*Server, error) {
-	id = strings.ToUpper(strings.ReplaceAll(id, ":", "-"))
-
 	return s.repo.GetServerByID(id)
 }
 

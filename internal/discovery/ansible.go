@@ -23,7 +23,7 @@ func NewAnsibleIpScanner(conf config.Config) *AnsibleIpScanner {
 	return &AnsibleIpScanner{conf: conf}
 }
 
-func (s *AnsibleIpScanner) GetServerDetails(ctx context.Context, ip string) (*AnsibleDetails, error) {
+func (s *AnsibleIpScanner) GetServerDetails(ctx context.Context, ip string) (*Details, error) {
 	if err := os.Setenv(options.AnsibleHostKeyCheckingEnv, "False"); err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (s *AnsibleIpScanner) GetServerDetails(ctx context.Context, ip string) (*An
 	hostname := facts["ansible_hostname"].(string)
 	os := facts["ansible_distribution"].(string)
 
-	return &AnsibleDetails{
+	return &Details{
 		Hostname: hostname,
 		OS:       os,
 	}, nil

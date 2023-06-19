@@ -6,11 +6,13 @@ require (
 	github.com/Ullaakut/nmap/v3 v3.0.2
 	github.com/apenella/go-ansible v1.1.7
 	github.com/gdamore/tcell/v2 v2.6.0
+	github.com/golang/mock v1.6.0
 	github.com/imdario/mergo v0.3.16
 	github.com/rivo/tview v0.0.0-20230530133550-8bd761dda819
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
+	github.com/stretchr/testify v1.8.3
 	gorm.io/datatypes v1.2.0
 	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2-0.20230530020048-26663ab9bf55
@@ -43,7 +45,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/stretchr/testify v1.8.3 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect

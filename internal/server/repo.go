@@ -12,8 +12,8 @@ type SqliteRepo struct {
 	db *gorm.DB
 }
 
-// NewSqliteDatabase returns a new opi sqlite db
-func NewSqliteDatabase(db *gorm.DB) *SqliteRepo {
+// NewSqliteRepo returns a new opi sqlite db
+func NewSqliteRepo(db *gorm.DB) *SqliteRepo {
 	return &SqliteRepo{db: db}
 }
 
@@ -28,7 +28,7 @@ func (r *SqliteRepo) GetAllServers() ([]*Server, error) {
 	return servers, nil
 }
 
-// GetServerByID returns a server from the SqliteDatabase
+// GetServerByID returns a server from the SqliteRepo
 func (r *SqliteRepo) GetServerByID(serverID string) (*Server, error) {
 	server := Server{ID: serverID}
 
@@ -43,7 +43,7 @@ func (r *SqliteRepo) GetServerByID(serverID string) (*Server, error) {
 	return &server, nil
 }
 
-// GetServerByIP returns a server from the SqliteDatabase based on current ip
+// GetServerByIP returns a server from the SqliteRepo based on current ip
 func (r *SqliteRepo) GetServerByIP(ip string) (*Server, error) {
 	server := Server{IP: ip}
 

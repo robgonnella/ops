@@ -314,8 +314,6 @@ func (v *view) run() error {
 	v.bindKeys()
 	v.processBackgroundServerUpdates()
 	v.processBackgroundEventUpdates()
-	if err := v.appCore.BackgroundRestart(); err != nil {
-		return err
-	}
+	v.appCore.StartDaemon()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
 }

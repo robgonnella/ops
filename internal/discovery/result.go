@@ -33,7 +33,7 @@ type DiscoveryResult struct {
 	Ports    []Port
 }
 
-type AnsibleDetails struct {
+type Details struct {
 	Hostname string
 	OS       string
 }

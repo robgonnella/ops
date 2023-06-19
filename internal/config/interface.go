@@ -6,6 +6,8 @@ import (
 	"gorm.io/datatypes"
 )
 
+//go:generate mockgen -destination=../mock/config/mock_config.go -package=mock_config . Repo,Service
+
 // SSHOverride represents the config needed to
 // override ssh config for a single target
 type SSHOverride struct {
