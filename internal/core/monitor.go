@@ -10,12 +10,12 @@ import (
 
 // Run runs the sequence driver for the HostInstallStage
 func (c *Core) Monitor() error {
-	defer c.cancel()
-
 	evtReceiveChan := make(chan *event.Event, 100)
 
 	// create event subscription
 	subscription := c.serverService.StreamEvents(evtReceiveChan)
+
+	defer c.serverService.StopStream(subscription)
 
 	// Start network scanner
 	go c.discovery.MonitorNetwork()
@@ -26,7 +26,6 @@ func (c *Core) Monitor() error {
 	for {
 		select {
 		case <-c.ctx.Done():
-			c.serverService.StopStream(subscription)
 			return c.ctx.Err()
 		case evt := <-evtReceiveChan:
 			c.handleServerEvent(evt)

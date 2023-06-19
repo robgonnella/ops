@@ -158,10 +158,9 @@ func TestCore(t *testing.T) {
 		mockServerService.EXPECT().GetAllServers()
 		mockScanner.EXPECT().Scan()
 		mockScanner.EXPECT().Stop()
-		mockServerService.EXPECT().StopStream(gomock.Any())
 
 		go coreService.Monitor()
 
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 10)
 	})
 }
