@@ -7,28 +7,31 @@ import (
 	"github.com/robgonnella/opi/internal/ui/style"
 )
 
-type ActionInput struct {
+type SwitchViewInput struct {
 	root     *tview.InputField
 	showing  bool
 	onSubmit func(text string)
 }
 
-func NewActionInput(onSubmit func(text string)) *ActionInput {
+func NewSwitchViewInput(onSubmit func(text string)) *SwitchViewInput {
 
 	input := tview.NewInputField()
 	input.SetFieldStyle(style.StyleDefault.Dim(true))
 	input.SetBorderPadding(0, 0, 1, 1)
+	input.SetPlaceholderStyle(style.StyleDefault.Dim(true))
 
 	input.SetFocusFunc(func() {
 		input.SetBorder(true)
 		input.SetBorderColor(style.ColorPurple)
+		input.SetPlaceholder("Enter view")
 	})
 
 	input.SetBlurFunc(func() {
 		input.SetBorder(false)
+		input.SetPlaceholder("")
 	})
 
-	ai := &ActionInput{
+	ai := &SwitchViewInput{
 		root:     input,
 		showing:  false,
 		onSubmit: onSubmit,
@@ -44,6 +47,6 @@ func NewActionInput(onSubmit func(text string)) *ActionInput {
 	return ai
 }
 
-func (i *ActionInput) Primitive() tview.Primitive {
+func (i *SwitchViewInput) Primitive() tview.Primitive {
 	return i.root
 }

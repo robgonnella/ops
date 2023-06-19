@@ -21,7 +21,7 @@ type Header struct {
 	legendContainer   *tview.Flex
 	legendCol1        *tview.Flex
 	legendCol2        *tview.Flex
-	switchViewInput   *ActionInput
+	switchViewInput   *SwitchViewInput
 	viewsText         *tview.TextView
 	targets           []string
 	extraLegendMap    map[string]tview.Primitive
@@ -48,7 +48,7 @@ func NewHeader(userIP string, targets []string, onViewSwitch func(text string)) 
 	viewsText.SetTextColor(style.ColorOrange)
 	viewsText.SetTextAlign(tview.AlignLeft)
 
-	switchViewInput := NewActionInput(onViewSwitch)
+	switchViewInput := NewSwitchViewInput(onViewSwitch)
 
 	h.switchViewInput = switchViewInput
 
@@ -122,7 +122,7 @@ func (h *Header) IsShowingSwitchViewInput() bool {
 	return h.showingSwitchView
 }
 
-func (h *Header) SwitchViewInput() *ActionInput {
+func (h *Header) SwitchViewInput() *SwitchViewInput {
 	return h.switchViewInput
 }
 
