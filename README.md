@@ -33,5 +33,5 @@ make opi
 - clear database file and log file
 
 ```bash
-./build/opi clean
+./build/opi clear
 ```

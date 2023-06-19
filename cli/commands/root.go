@@ -18,8 +18,9 @@ func Root(props *CommandProps) *cobra.Command {
 	var silent bool
 
 	cmd := &cobra.Command{
-		Use:   "opi",
-		Short: "The opi command line utility",
+		Use:     "opi",
+		Short:   "The opi command line utility",
+		Aliases: []string{"clean"},
 		// This runs before all commands and all sub-commands
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// set logging verbosity for all loggers
@@ -44,7 +45,7 @@ func Root(props *CommandProps) *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Show debug logs")
 	cmd.PersistentFlags().BoolVar(&silent, "silent", false, "disables all logging")
 
-	cmd.AddCommand(clean())
+	cmd.AddCommand(clear())
 
 	return cmd
 }

@@ -8,11 +8,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-// creates and returns the "monitor" command
-func clean() *cobra.Command {
+func clear() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "clean",
-		Short: "Clears the database file",
+		Use:   "clear",
+		Short: "Clears database and log files",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := logger.New()
 
