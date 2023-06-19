@@ -45,7 +45,7 @@ type view struct {
 	logger               logger.Logger
 }
 
-func newView(appCore *core.Core) *view {
+func newView(userIP string, appCore *core.Core) *view {
 	log := logger.New()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -66,7 +66,11 @@ func newView(appCore *core.Core) *view {
 	root := tview.NewFlex().SetDirection(tview.FlexRow)
 	pages := tview.NewPages()
 
-	header := component.NewHeader(v.onActionSubmit)
+	header := component.NewHeader(
+		userIP,
+		appCore.Conf().Targets,
+		v.onActionSubmit,
+	)
 	serverTable := component.NewServerTable(v.onSSH)
 	eventTable := component.NewEventTable()
 	contextTable := component.NewConfigContext(

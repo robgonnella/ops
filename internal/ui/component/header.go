@@ -1,6 +1,9 @@
 package component
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/rivo/tview"
 	"github.com/robgonnella/opi/internal/ui/style"
 )
@@ -18,14 +21,14 @@ type Header struct {
 	legendContainer   *tview.Flex
 	legendCol1        *tview.Flex
 	legendCol2        *tview.Flex
-	legendCol3        *tview.Flex
 	switchViewInput   *ActionInput
 	viewsText         *tview.TextView
+	targets           []string
 	extraLegendMap    map[string]tview.Primitive
 	showingSwitchView bool
 }
 
-func NewHeader(onViewSwitch func(text string)) *Header {
+func NewHeader(userIP string, targets []string, onViewSwitch func(text string)) *Header {
 	h := &Header{}
 
 	h.root = tview.NewFlex().SetDirection(tview.FlexRow)
@@ -36,11 +39,6 @@ func NewHeader(onViewSwitch func(text string)) *Header {
 
 	h.legendCol2 = tview.NewFlex().SetDirection(tview.FlexRow)
 
-	h.legendCol3 = tview.NewFlex().SetDirection(tview.FlexRow)
-
-	emptyText := tview.NewTextView().SetText("")
-	h.legendCol3.AddItem(emptyText, 0, 1, false)
-
 	h.setDefaultLegend()
 
 	h.root.AddItem(h.legendContainer, 0, 1, false)
@@ -48,16 +46,32 @@ func NewHeader(onViewSwitch func(text string)) *Header {
 	viewsText := tview.NewTextView().
 		SetText("views: servers, events, context, configure")
 	viewsText.SetTextColor(style.ColorOrange)
+	viewsText.SetTextAlign(tview.AlignLeft)
 
 	switchViewInput := NewActionInput(onViewSwitch)
 
 	h.switchViewInput = switchViewInput
 
+	currentTarget := tview.NewTextView().
+		SetText(
+			fmt.Sprintf(
+				"IP: %s, Network Targets: %s",
+				userIP,
+				strings.Join(targets, ","),
+			),
+		)
+
+	currentTarget.SetTextColor(style.ColorLightGreen)
+	currentTarget.SetTextAlign(tview.AlignLeft)
+
+	h.root.AddItem(currentTarget, 1, 1, false)
 	h.root.AddItem(h.switchViewInput.Primitive(), 3, 1, false)
 
 	h.viewsText = viewsText
 
 	h.showingSwitchView = false
+
+	h.targets = targets
 
 	return h
 }
@@ -86,10 +100,11 @@ func (h *Header) ShowExtraLegend(legend map[string]string) {
 	for key, value := range legend {
 		v := tview.NewTextView().
 			SetText(key + " - " + value).
-			SetTextStyle(style.StyleDefault.Dim(true))
+			SetTextColor(style.ColorOrange).
+			SetTextAlign(tview.AlignLeft)
 
 		primitives[key] = v
-		h.legendCol3.AddItem(v, 0, 1, false)
+		h.legendCol2.AddItem(v, 0, 1, false)
 	}
 
 	h.extraLegendMap = primitives
@@ -97,7 +112,7 @@ func (h *Header) ShowExtraLegend(legend map[string]string) {
 
 func (h *Header) RemoveExtraLegend() {
 	for _, primitive := range h.extraLegendMap {
-		h.legendCol3.RemoveItem(primitive)
+		h.legendCol2.RemoveItem(primitive)
 	}
 
 	h.extraLegendMap = map[string]tview.Primitive{}
@@ -121,11 +136,11 @@ func (h *Header) setDefaultLegend() {
 	emptyText := tview.NewTextView().SetText("")
 	viewSwitchLegend := tview.NewTextView().SetText("type \":\" to change views")
 	viewSwitchLegend.SetTextColor(style.ColorOrange)
+	viewSwitchLegend.SetTextAlign(tview.AlignLeft)
 
 	h.legendCol2.AddItem(emptyText, 0, 1, false)
 	h.legendCol2.AddItem(viewSwitchLegend, 0, 1, false)
 
-	h.legendContainer.AddItem(h.legendCol1, 36, 1, false)
-	h.legendContainer.AddItem(h.legendCol2, 50, 1, false)
-	h.legendContainer.AddItem(h.legendCol3, 0, 1, false)
+	h.legendContainer.AddItem(h.legendCol1, 60, 1, false)
+	h.legendContainer.AddItem(h.legendCol2, 0, 1, false)
 }

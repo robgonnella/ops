@@ -137,7 +137,9 @@ func (u *UI) Launch() error {
 
 	appCore := core.New(*conf, configService, serverService, scannerService)
 
-	u.view = newView(appCore)
+	userIP := viper.Get("user-ip").(string)
+
+	u.view = newView(userIP, appCore)
 
 	os.Stdout, _ = os.Open(os.DevNull)
 	os.Stderr, _ = os.Open(os.DevNull)
