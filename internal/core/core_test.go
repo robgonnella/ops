@@ -155,9 +155,10 @@ func TestCore(t *testing.T) {
 		defer coreService.Stop()
 
 		mockServerService.EXPECT().StreamEvents(gomock.Any())
-		mockServerService.EXPECT().GetAllServers()
+		mockServerService.EXPECT().GetAllServers().AnyTimes()
 		mockScanner.EXPECT().Scan()
 		mockScanner.EXPECT().Stop()
+		mockServerService.EXPECT().StopStream(gomock.Any()).AnyTimes()
 
 		go coreService.Monitor()
 
