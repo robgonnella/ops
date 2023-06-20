@@ -160,7 +160,7 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	appUI := ui.New()
+	appUI := ui.NewUI()
 
 	// Get the "root" cobra cli command
 	cmd := commands.Root(&commands.CommandProps{

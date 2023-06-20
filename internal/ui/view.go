@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"sort"
@@ -19,7 +20,7 @@ import (
 )
 
 func restart() error {
-	newUI := New()
+	newUI := NewUI()
 	return newUI.Launch()
 }
 
@@ -34,6 +35,7 @@ type view struct {
 	eventTable             *component.EventTable
 	configureForm          *component.ConfigureForm
 	contextTable           *component.ConfigContext
+	contextToDelete        string
 	appCore                *core.Core
 	serverUpdateChan       chan []*server.Server
 	eventUpdateChan        chan *event.Event
@@ -109,6 +111,7 @@ func newView(userIP string, appCore *core.Core) *view {
 	v.eventTable = eventTable
 	v.configureForm = configureForm
 	v.contextTable = contextTable
+	v.contextToDelete = ""
 	v.serverUpdateChan = serverUpdateChan
 	v.eventUpdateChan = eventUpdateChan
 	v.serverPollListenerId = serverPollListenerId
@@ -149,6 +152,8 @@ func (v *view) onActionSubmit(text string) {
 func (v *view) onConfigureFormSubmit(conf config.Config) {
 	if err := v.appCore.UpdateConfig(conf); err != nil {
 		v.logger.Error().Err(err).Msg("failed to write config file")
+		v.showErrorModal("Failed to write config file")
+		return
 	}
 
 	v.stop()
@@ -157,7 +162,8 @@ func (v *view) onConfigureFormSubmit(conf config.Config) {
 
 func (v *view) onContextSelect(name string) {
 	if err := v.appCore.SetConfig(name); err != nil {
-		v.logger.Error().Err(err).Msg("failed to set new config")
+		v.logger.Error().Err(err).Msg("failed to set new context")
+		v.showErrorModal("Failed to set new context")
 		return
 	}
 
@@ -165,14 +171,65 @@ func (v *view) onContextSelect(name string) {
 	restart()
 }
 
+func (v *view) dismissContextDelete() {
+	v.contextToDelete = ""
+	v.app.SetRoot(v.root, true)
+}
+
 func (v *view) onContextDelete(name string) {
-	if err := v.appCore.DeleteConfig(name); err != nil {
+	v.contextToDelete = name
+	buttons := []component.ModalButton{
+		{
+			Label:   "OK",
+			OnClick: v.deleteContext,
+		},
+		{
+			Label:   "Dismiss",
+			OnClick: v.dismissContextDelete,
+		},
+	}
+	contextDeleteConfirm := component.NewModal(
+		fmt.Sprintf("Delete %s configuration?", name),
+		buttons,
+	)
+	v.app.SetRoot(contextDeleteConfirm.Primitive(), false)
+}
+
+func (v *view) deleteContext() {
+	if v.contextToDelete == "" {
+		return
+	}
+
+	defer func() {
+		v.contextToDelete = ""
+	}()
+
+	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
 		v.logger.Error().Err(err).Msg("failed to delete config")
+		v.showErrorModal("Failed to delete context")
 		return
 	}
 
 	v.stop()
 	restart()
+}
+
+func (v *view) showErrorModal(message string) {
+	buttons := []component.ModalButton{
+		{
+			Label:   "Dismiss",
+			OnClick: v.dismissErrorModal,
+		},
+	}
+	errorModal := component.NewModal(
+		message,
+		buttons,
+	)
+	v.app.SetRoot(errorModal.Primitive(), false)
+}
+
+func (v *view) dismissErrorModal() {
+	v.app.SetRoot(v.root, true)
 }
 
 func (v *view) bindKeys() {
@@ -214,9 +271,11 @@ func (v *view) focus() {
 
 		if err != nil {
 			v.logger.Error().Err(err).Msg("")
+			v.showErrorModal("Failed to retrieve configurations from database")
+			return
 		}
 
-		if err == nil && len(confs) > 1 {
+		if len(confs) > 1 {
 			v.header.RemoveAllExtraLegendKeys()
 			v.header.AddLegendKey("ctrl+d", "delete context")
 			v.header.AddLegendKey("enter", "select new context")
@@ -235,6 +294,7 @@ func (v *view) onSSH(ip string) {
 	defer func() {
 		if err := restart(); err != nil {
 			v.logger.Error().Err(err).Msg("error restarting ui")
+			os.Exit(1)
 		}
 	}()
 

@@ -64,7 +64,7 @@ type UI struct {
 var originalStdout = os.Stdout
 var originalStderr = os.Stderr
 
-func New() *UI {
+func NewUI() *UI {
 	return &UI{}
 }
 
