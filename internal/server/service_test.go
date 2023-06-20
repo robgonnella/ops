@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/robgonnella/opi/internal/config"
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/exception"
-	mock_server "github.com/robgonnella/opi/internal/mock/server"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/exception"
+	mock_server "github.com/robgonnella/ops/internal/mock/server"
+	"github.com/robgonnella/ops/internal/server"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -5,9 +5,9 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/robgonnella/opi/internal/server"
-	"github.com/robgonnella/opi/internal/ui/key"
-	"github.com/robgonnella/opi/internal/ui/style"
+	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/ui/key"
+	"github.com/robgonnella/ops/internal/ui/style"
 )
 
 type ServerTable struct {

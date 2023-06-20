@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/robgonnella/opi/internal/discovery"
-	mock_discovery "github.com/robgonnella/opi/internal/mock/discovery"
-	mock_server "github.com/robgonnella/opi/internal/mock/server"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/discovery"
+	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
+	mock_server "github.com/robgonnella/ops/internal/mock/server"
+	"github.com/robgonnella/ops/internal/server"
 )
 
 func TestDiscoveryService(t *testing.T) {

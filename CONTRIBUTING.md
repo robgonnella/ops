@@ -55,17 +55,17 @@ make test
 ## Build
 
 ```bash
-make opi
+make ops
 ```
 
 ## Run
 
 ```bash
-./build/opi
+./build/ops
 ```
 
 - clear database file and log file
 
 ```bash
-./build/opi clean
+./build/ops clean
 ```

@@ -9,13 +9,13 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/robgonnella/opi/internal/config"
-	"github.com/robgonnella/opi/internal/core"
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/logger"
-	"github.com/robgonnella/opi/internal/server"
-	"github.com/robgonnella/opi/internal/ui/component"
-	"github.com/robgonnella/opi/internal/ui/key"
+	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/core"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/logger"
+	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/ui/component"
+	"github.com/robgonnella/ops/internal/ui/key"
 )
 
 func restart() error {

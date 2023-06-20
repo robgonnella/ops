@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/server"
 )
 
 // Run runs the sequence driver for the HostInstallStage

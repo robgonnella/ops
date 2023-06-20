@@ -1,6 +1,6 @@
 package server
 
-import "github.com/robgonnella/opi/internal/event"
+import "github.com/robgonnella/ops/internal/event"
 
 //go:generate mockgen -destination=../mock/server/mock_server.go -package=mock_server . Repo,Service
 

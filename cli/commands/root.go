@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/robgonnella/opi/internal/ui"
+	"github.com/robgonnella/ops/internal/ui"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
@@ -18,8 +18,8 @@ func Root(props *CommandProps) *cobra.Command {
 	var silent bool
 
 	cmd := &cobra.Command{
-		Use:     "opi",
-		Short:   "The opi command line utility",
+		Use:     "ops",
+		Short:   "The ops command line utility",
 		Aliases: []string{"clean"},
 		// This runs before all commands and all sub-commands
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"github.com/robgonnella/opi/internal/config"
-	"github.com/robgonnella/opi/internal/discovery"
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/logger"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/discovery"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/logger"
+	"github.com/robgonnella/ops/internal/server"
 )
 
 type EventListener struct {

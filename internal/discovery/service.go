@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/robgonnella/opi/internal/logger"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/logger"
+	"github.com/robgonnella/ops/internal/server"
 )
 
 // ScannerService implements our discovery service using nmap

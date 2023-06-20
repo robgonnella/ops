@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/robgonnella/opi/internal/logger"
+	"github.com/robgonnella/ops/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

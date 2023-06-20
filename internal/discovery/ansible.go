@@ -12,7 +12,7 @@ import (
 	"github.com/apenella/go-ansible/pkg/execute"
 	"github.com/apenella/go-ansible/pkg/execute/measure"
 	"github.com/apenella/go-ansible/pkg/options"
-	"github.com/robgonnella/opi/internal/config"
+	"github.com/robgonnella/ops/internal/config"
 )
 
 type AnsibleIpScanner struct {

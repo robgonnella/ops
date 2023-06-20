@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/imdario/mergo"
-	"github.com/robgonnella/opi/internal/config"
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/exception"
-	"github.com/robgonnella/opi/internal/logger"
+	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/exception"
+	"github.com/robgonnella/ops/internal/logger"
 )
 
 var channelID = 0

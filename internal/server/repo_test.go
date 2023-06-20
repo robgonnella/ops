@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/robgonnella/opi/internal/exception"
-	"github.com/robgonnella/opi/internal/server"
-	"github.com/robgonnella/opi/internal/test_util"
+	"github.com/robgonnella/ops/internal/exception"
+	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/test_util"
 	"github.com/stretchr/testify/assert"
 )
 

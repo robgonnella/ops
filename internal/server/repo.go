@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 
-	"github.com/robgonnella/opi/internal/exception"
+	"github.com/robgonnella/ops/internal/exception"
 	"gorm.io/gorm"
 )
 
@@ -12,7 +12,7 @@ type SqliteRepo struct {
 	db *gorm.DB
 }
 
-// NewSqliteRepo returns a new opi sqlite db
+// NewSqliteRepo returns a new ops sqlite db
 func NewSqliteRepo(db *gorm.DB) *SqliteRepo {
 	return &SqliteRepo{db: db}
 }

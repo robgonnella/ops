@@ -3,13 +3,13 @@ PREFIX = $(shell pwd)/build
 go_deps = $(shell find . -name '*.go')
 
 .PHONY: all
-all: $(PREFIX)/opi
+all: $(PREFIX)/ops
 
-$(PREFIX)/opi: $(go_deps)
+$(PREFIX)/ops: $(go_deps)
 	cd cli && go build -ldflags '-s -w' -o $(@)
 
-.PHONY: opi
-opi: $(PREFIX)/opi
+.PHONY: ops
+ops: $(PREFIX)/ops
 
 .PHONY: test
 test:

@@ -1,3 +1,3 @@
 package name
 
-const APP_NAME = "opi"
+const APP_NAME = "ops"

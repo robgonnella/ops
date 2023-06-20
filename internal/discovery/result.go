@@ -1,6 +1,6 @@
 package discovery
 
-import "github.com/robgonnella/opi/internal/server"
+import "github.com/robgonnella/ops/internal/server"
 
 // DeviceType represents a type of device discovered on the network
 type DeviceType int

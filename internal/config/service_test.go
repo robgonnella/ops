@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/robgonnella/opi/internal/config"
-	mock_config "github.com/robgonnella/opi/internal/mock/config"
+	"github.com/robgonnella/ops/internal/config"
+	mock_config "github.com/robgonnella/ops/internal/mock/config"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -18,16 +18,16 @@ flash/contents/
 .vscode/
 
 # test config
-opi.yml
+ops.yml
 
 # sqlite db
-opi.db
+ops.db
 
 # Fake Makefile objects
-.opi*
+.ops*
 .centos8_installer
 
-# only allow switch configs and opi.yml from demo directory
+# only allow switch configs and ops.yml from demo directory
 demo/configs/tmppxeroot
 demo/configs/pxeboot
 demo/configs/webroot

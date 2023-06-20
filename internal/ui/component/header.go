@@ -5,16 +5,16 @@ import (
 	"strings"
 
 	"github.com/rivo/tview"
-	"github.com/robgonnella/opi/internal/ui/style"
+	"github.com/robgonnella/ops/internal/ui/style"
 )
 
 const appText = `
- ██████╗ ██████╗ ██╗
-██╔═══██╗██╔══██╗██║
-██║   ██║██████╔╝██║
-██║   ██║██╔═══╝ ██║
-╚██████╔╝██║     ██║
- ╚═════╝ ╚═╝     ╚═╝`
+ ██████╗ ██████╗ ███████╗
+██╔═══██╗██╔══██╗██╔════╝
+██║   ██║██████╔╝███████╗
+██║   ██║██╔═══╝ ╚════██║
+╚██████╔╝██║     ███████║
+ ╚═════╝ ╚═╝     ╚══════╝`
 
 type Header struct {
 	root            *tview.Flex

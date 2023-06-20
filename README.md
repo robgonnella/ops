@@ -1,4 +1,5 @@
-# Opi
+# ops
+
 ## On-Prem Server Management
 
 ## Getting Started
@@ -18,20 +19,20 @@ export GOPATH="$HOME/go"
 PATH="${GOPATH}/bin:$PATH"
 ```
 
-- Build opi
+- Build ops
 
 ```bash
-make opi
+make ops
 ```
 
-- launch opi ui and scan network
+- launch ops ui and scan network
 
 ```bash
-./build/opi
+./build/ops
 ```
 
 - clear database file and log file
 
 ```bash
-./build/opi clear
+./build/ops clear
 ```

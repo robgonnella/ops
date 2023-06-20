@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/rivo/tview"
-	"github.com/robgonnella/opi/internal/event"
-	"github.com/robgonnella/opi/internal/server"
-	"github.com/robgonnella/opi/internal/ui/style"
+	"github.com/robgonnella/ops/internal/event"
+	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/ui/style"
 )
 
 type EventTable struct {

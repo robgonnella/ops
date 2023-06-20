@@ -1,4 +1,4 @@
-module github.com/robgonnella/opi
+module github.com/robgonnella/ops
 
 go 1.19
 

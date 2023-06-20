@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/robgonnella/opi/internal/config"
-	"github.com/robgonnella/opi/internal/core"
-	"github.com/robgonnella/opi/internal/discovery"
-	"github.com/robgonnella/opi/internal/event"
-	mock_config "github.com/robgonnella/opi/internal/mock/config"
-	mock_discovery "github.com/robgonnella/opi/internal/mock/discovery"
-	mock_server "github.com/robgonnella/opi/internal/mock/server"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/core"
+	"github.com/robgonnella/ops/internal/discovery"
+	"github.com/robgonnella/ops/internal/event"
+	mock_config "github.com/robgonnella/ops/internal/mock/config"
+	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
+	mock_server "github.com/robgonnella/ops/internal/mock/server"
+	"github.com/robgonnella/ops/internal/server"
 	"github.com/stretchr/testify/assert"
 )
 

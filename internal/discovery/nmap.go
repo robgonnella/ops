@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/Ullaakut/nmap/v3"
-	"github.com/robgonnella/opi/internal/logger"
-	"github.com/robgonnella/opi/internal/server"
+	"github.com/robgonnella/ops/internal/logger"
+	"github.com/robgonnella/ops/internal/server"
 )
 
 // NmapScanner implements our discovery service using nmap

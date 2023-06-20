@@ -9,10 +9,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/robgonnella/opi/cli/commands"
-	"github.com/robgonnella/opi/internal/logger"
-	"github.com/robgonnella/opi/internal/name"
-	"github.com/robgonnella/opi/internal/ui"
+	"github.com/robgonnella/ops/cli/commands"
+	"github.com/robgonnella/ops/internal/logger"
+	"github.com/robgonnella/ops/internal/name"
+	"github.com/robgonnella/ops/internal/ui"
 	"github.com/spf13/viper"
 )
 
