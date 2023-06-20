@@ -50,6 +50,10 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 		row := []string{name, target, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
+			if name == current && col == 0 {
+				text = text + " (selected)"
+			}
+
 			cell := tview.NewTableCell(text)
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)

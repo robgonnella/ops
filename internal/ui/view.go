@@ -24,25 +24,26 @@ func restart() error {
 }
 
 type view struct {
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	app                  *tview.Application
-	root                 *tview.Flex
-	pages                *tview.Pages
-	header               *component.Header
-	serverTable          *component.ServerTable
-	eventTable           *component.EventTable
-	configureForm        *component.ConfigureForm
-	contextTable         *component.ConfigContext
-	appCore              *core.Core
-	serverUpdateChan     chan []*server.Server
-	eventUpdateChan      chan *event.Event
-	serverPollListenerId int
-	eventListernId       int
-	focused              tview.Primitive
-	focusedName          string
-	viewNames            []string
-	logger               logger.Logger
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	app                    *tview.Application
+	root                   *tview.Flex
+	pages                  *tview.Pages
+	header                 *component.Header
+	serverTable            *component.ServerTable
+	eventTable             *component.EventTable
+	configureForm          *component.ConfigureForm
+	contextTable           *component.ConfigContext
+	appCore                *core.Core
+	serverUpdateChan       chan []*server.Server
+	eventUpdateChan        chan *event.Event
+	serverPollListenerId   int
+	eventListernId         int
+	focused                tview.Primitive
+	focusedName            string
+	viewNames              []string
+	showingSwitchViewInput bool
+	logger                 logger.Logger
 }
 
 func newView(userIP string, appCore *core.Core) *view {
@@ -53,12 +54,13 @@ func newView(userIP string, appCore *core.Core) *view {
 	app := tview.NewApplication()
 
 	v := &view{
-		ctx:       ctx,
-		cancel:    cancel,
-		appCore:   appCore,
-		app:       app,
-		viewNames: []string{"servers", "events", "context", "configure"},
-		logger:    log,
+		ctx:                    ctx,
+		cancel:                 cancel,
+		appCore:                appCore,
+		app:                    app,
+		viewNames:              []string{"servers", "events", "context", "configure"},
+		showingSwitchViewInput: false,
+		logger:                 log,
 	}
 
 	allConfigs, _ := v.appCore.GetConfigs()
@@ -140,8 +142,8 @@ func (v *view) onActionSubmit(text string) {
 		}
 	}
 
-	v.header.HideSwitchViewInput()
 	v.focus()
+	v.showingSwitchViewInput = false
 }
 
 func (v *view) onConfigureFormSubmit(conf config.Config) {
@@ -180,20 +182,20 @@ func (v *view) bindKeys() {
 			v.stop()
 			return evt
 		case key.KeyEsc:
-			if v.header.IsShowingSwitchViewInput() {
-				v.header.HideSwitchViewInput()
+			if v.showingSwitchViewInput {
 				v.focus()
+				v.showingSwitchViewInput = false
 				return nil
 			}
 		}
 
 		if evt.Rune() == key.RuneColon {
-			if v.header.IsShowingSwitchViewInput() {
+			if v.showingSwitchViewInput {
 				return evt
 			}
 
-			v.header.ShowSwitchViewInput()
 			v.app.SetFocus(v.header.SwitchViewInput().Primitive())
+			v.showingSwitchViewInput = true
 
 			return nil
 		}
@@ -203,11 +205,10 @@ func (v *view) bindKeys() {
 }
 
 func (v *view) focus() {
-	extraLegend := map[string]string{}
-
 	switch v.focusedName {
 	case "servers":
-		extraLegend["ctrl+s"] = "ssh to selected machine"
+		v.header.RemoveAllExtraLegendKeys()
+		v.header.AddLegendKey("ctrl+s", "ssh to selected machine")
 	case "context":
 		confs, err := v.appCore.GetConfigs()
 
@@ -216,13 +217,13 @@ func (v *view) focus() {
 		}
 
 		if err == nil && len(confs) > 1 {
-			extraLegend["enter"] = "select and scan using context configuration"
-			extraLegend["ctrl+d"] = "delete context"
+			v.header.RemoveAllExtraLegendKeys()
+			v.header.AddLegendKey("ctrl+d", "delete context")
+			v.header.AddLegendKey("enter", "select new context")
 		}
+	default:
+		v.header.RemoveAllExtraLegendKeys()
 	}
-
-	v.header.RemoveExtraLegend()
-	v.header.ShowExtraLegend(extraLegend)
 
 	v.pages.SwitchToPage(v.focusedName)
 	v.app.SetFocus(v.focused)

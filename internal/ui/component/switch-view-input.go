@@ -23,7 +23,7 @@ func NewSwitchViewInput(onSubmit func(text string)) *SwitchViewInput {
 	input.SetFocusFunc(func() {
 		input.SetBorder(true)
 		input.SetBorderColor(style.ColorPurple)
-		input.SetPlaceholder("Enter view")
+		input.SetPlaceholder("Enter view: servers, events, context, configure")
 	})
 
 	input.SetBlurFunc(func() {
