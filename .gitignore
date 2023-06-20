@@ -1,0 +1,42 @@
+# Extensions
+*.env
+*.iso
+*.img
+*.qcow2
+*.pid
+*.log
+*.leases
+*.iso
+*.conf
+
+id_rsa
+anaconda-ks.cfg
+
+# Directories
+build/
+flash/contents/
+.vscode/
+
+# test config
+opi.yml
+
+# sqlite db
+opi.db
+
+# Fake Makefile objects
+.opi*
+.centos8_installer
+
+# only allow switch configs and opi.yml from demo directory
+demo/configs/tmppxeroot
+demo/configs/pxeboot
+demo/configs/webroot
+demo/masq.conf
+demo/masq.leases
+demo/masq.log
+demo/masq.pid
+
+
+# electron build
+dist
+**/*.scss.d.ts
