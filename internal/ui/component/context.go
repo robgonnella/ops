@@ -14,7 +14,12 @@ type ConfigContext struct {
 	root *tview.Table
 }
 
-func NewConfigContext(current string, confs []*config.Config, onSelect func(name string), onDelete func(name string)) *ConfigContext {
+func NewConfigContext(
+	current string,
+	confs []*config.Config,
+	onSelect func(name string),
+	onDelete func(name string),
+) *ConfigContext {
 	colHeaders := []string{"Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
@@ -36,14 +41,23 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 		return evt
 	})
 
-	for rowIdx, c := range confs {
-		name := c.Name
-		target := strings.Join(c.Targets, ",")
-		sshUser := c.SSH.User
-		sshIdentity := c.SSH.Identity
+	c := &ConfigContext{root: table}
+	c.UpdateConfigs(current, confs)
+
+	return c
+}
+
+func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
+	c.clearRows()
+
+	for rowIdx, conf := range confs {
+		name := conf.Name
+		target := strings.Join(conf.Targets, ",")
+		sshUser := conf.SSH.User
+		sshIdentity := conf.SSH.Identity
 		overrides := "N"
 
-		if len(c.SSH.Overrides) > 0 {
+		if len(conf.SSH.Overrides) > 0 {
 			overrides = "Y"
 		}
 
@@ -65,13 +79,20 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 				cell.SetSelectable(true)
 			}
 
-			table.SetCell(rowIdx+2, col, cell)
+			c.root.SetCell(rowIdx+2, col, cell)
 		}
 	}
-
-	return &ConfigContext{root: table}
 }
 
 func (c *ConfigContext) Primitive() tview.Primitive {
 	return c.root
+}
+
+func (c *ConfigContext) clearRows() {
+	count := c.root.GetRowCount()
+
+	// skip header rows
+	for i := 2; i < count; i++ {
+		c.root.RemoveRow(i)
+	}
 }

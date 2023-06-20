@@ -176,6 +176,21 @@ func (mr *MockServiceMockRecorder) GetAllServers() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllServers", reflect.TypeOf((*MockService)(nil).GetAllServers))
 }
 
+// GetAllServersInNetworkTargets mocks base method.
+func (m *MockService) GetAllServersInNetworkTargets(arg0 []string) ([]*server.Server, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllServersInNetworkTargets", arg0)
+	ret0, _ := ret[0].([]*server.Server)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllServersInNetworkTargets indicates an expected call of GetAllServersInNetworkTargets.
+func (mr *MockServiceMockRecorder) GetAllServersInNetworkTargets(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllServersInNetworkTargets", reflect.TypeOf((*MockService)(nil).GetAllServersInNetworkTargets), arg0)
+}
+
 // GetServer mocks base method.
 func (m *MockService) GetServer(arg0 string) (*server.Server, error) {
 	m.ctrl.T.Helper()

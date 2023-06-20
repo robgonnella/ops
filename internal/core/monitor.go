@@ -65,7 +65,9 @@ func (c *Core) pollForDatabaseUpdates() error {
 				return fmt.Errorf("too many consecutive errors encountered")
 			}
 
-			response, err := c.serverService.GetAllServers()
+			response, err := c.serverService.GetAllServersInNetworkTargets(
+				c.conf.Targets,
+			)
 
 			if err != nil {
 				c.logger.Error().Err(err)

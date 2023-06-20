@@ -64,11 +64,11 @@ type UI struct {
 var originalStdout = os.Stdout
 var originalStderr = os.Stderr
 
-func New() *UI {
+func NewUI() *UI {
 	return &UI{}
 }
 
-func (u *UI) Launch() error {
+func (u *UI) Launch(options ...ViewOption) error {
 	log := logger.New()
 
 	level := zerolog.GlobalLevel()
@@ -140,6 +140,10 @@ func (u *UI) Launch() error {
 	userIP := viper.Get("user-ip").(string)
 
 	u.view = newView(userIP, appCore)
+
+	for _, o := range options {
+		o(u.view)
+	}
 
 	os.Stdout, _ = os.Open(os.DevNull)
 	os.Stderr, _ = os.Open(os.DevNull)

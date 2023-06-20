@@ -10,6 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func assertEqualConf(t *testing.T, expected, actual *config.Config) {
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.SSH.User, actual.SSH.User)
+	assert.Equal(t, expected.SSH.Identity, actual.SSH.Identity)
+
+	for i, o := range expected.SSH.Overrides {
+		assert.Equal(t, o.Target, actual.SSH.Overrides[i].Target)
+		assert.Equal(t, o.User, actual.SSH.Overrides[i].User)
+		assert.Equal(t, o.Identity, actual.SSH.Overrides[i].Identity)
+	}
+}
+
 func TestConfigSqliteRepo(t *testing.T) {
 	testDBFile := "config.db"
 
@@ -58,16 +70,17 @@ func TestConfigSqliteRepo(t *testing.T) {
 		newConf, err := repo.Create(conf)
 
 		assert.NoError(st, err)
-		assert.Equal(st, conf, newConf)
+		assertEqualConf(st, conf, newConf)
 
 		foundConf, err := repo.Get(newConf.Name)
 
 		assert.NoError(st, err)
-		assert.Equal(st, newConf, foundConf)
+		assertEqualConf(st, newConf, foundConf)
 
-		conf.SSH.User = "newUser"
-
-		updatedConf, err := repo.Update(conf)
+		toUpdate := *conf
+		toUpdate.ID = 1
+		toUpdate.SSH.User = "newUser"
+		updatedConf, err := repo.Update(&toUpdate)
 
 		assert.NoError(st, err)
 		assert.Equal(st, "newUser", updatedConf.SSH.User)
@@ -117,15 +130,15 @@ func TestConfigSqliteRepo(t *testing.T) {
 
 		for _, c := range confs {
 			if c.Name == "conf1" {
-				assert.Equal(st, conf1, c)
+				assertEqualConf(st, conf1, c)
 			} else {
-				assert.Equal(st, conf2, c)
+				assertEqualConf(st, conf2, c)
 			}
 		}
 
 		lastLoaded, err := repo.LastLoaded()
 
 		assert.NoError(st, err)
-		assert.Equal(st, conf2, lastLoaded)
+		assertEqualConf(st, conf2, lastLoaded)
 	})
 }

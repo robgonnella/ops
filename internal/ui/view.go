@@ -2,8 +2,10 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -18,9 +20,18 @@ import (
 	"github.com/robgonnella/ops/internal/ui/key"
 )
 
-func restart() error {
-	newUI := New()
-	return newUI.Launch()
+func restart(options ...ViewOption) error {
+	newUI := NewUI()
+	return newUI.Launch(options...)
+}
+
+type ViewOption = func(v *view)
+
+func WithInitialFocus(name string) func(v *view) {
+	return func(v *view) {
+		v.focusedName = name
+		v.focus(v.focusedName)
+	}
 }
 
 type view struct {
@@ -34,12 +45,13 @@ type view struct {
 	eventTable             *component.EventTable
 	configureForm          *component.ConfigureForm
 	contextTable           *component.ConfigContext
+	contextToDelete        string
 	appCore                *core.Core
 	serverUpdateChan       chan []*server.Server
 	eventUpdateChan        chan *event.Event
 	serverPollListenerId   int
 	eventListernId         int
-	focused                tview.Primitive
+	prevFocusedName        string
 	focusedName            string
 	viewNames              []string
 	showingSwitchViewInput bool
@@ -84,7 +96,9 @@ func newView(userIP string, appCore *core.Core) *view {
 
 	configureForm := component.NewConfigureForm(
 		v.appCore.Conf(),
-		v.onConfigureFormSubmit,
+		v.onConfigureFormUpdate,
+		v.onConfigureFormCreate,
+		v.onDismissConfigureForm,
 	)
 
 	pages.AddPage("servers", serverTable.Primitive(), true, false)
@@ -109,70 +123,158 @@ func newView(userIP string, appCore *core.Core) *view {
 	v.eventTable = eventTable
 	v.configureForm = configureForm
 	v.contextTable = contextTable
+	v.contextToDelete = ""
 	v.serverUpdateChan = serverUpdateChan
 	v.eventUpdateChan = eventUpdateChan
 	v.serverPollListenerId = serverPollListenerId
 	v.eventListernId = eventListenerId
-
-	v.focused = serverTable.Primitive()
 	v.focusedName = "servers"
 
-	v.focus()
+	v.focus("servers")
 
 	return v
 }
 
 func (v *view) onActionSubmit(text string) {
+	focusedName := ""
+
 	for _, name := range v.viewNames {
 		if strings.HasPrefix(name, text) {
-			v.focusedName = name
-
-			switch name {
-			case "servers":
-				v.focused = v.serverTable.Primitive()
-			case "events":
-				v.focused = v.eventTable.Primitive()
-			case "configure":
-				v.focused = v.configureForm.Primitive()
-			case "context":
-				v.focused = v.contextTable.Primitive()
-			}
-
+			focusedName = name
 			break
 		}
 	}
 
-	v.focus()
+	v.focus(focusedName)
 	v.showingSwitchViewInput = false
 }
 
-func (v *view) onConfigureFormSubmit(conf config.Config) {
+func (v *view) onDismissConfigureForm() {
+	v.onActionSubmit(v.prevFocusedName)
+}
+
+func (v *view) onConfigureFormUpdate(conf config.Config) {
+	if reflect.DeepEqual(conf, v.appCore.Conf()) {
+		v.onDismissConfigureForm()
+		return
+	}
+
 	if err := v.appCore.UpdateConfig(conf); err != nil {
-		v.logger.Error().Err(err).Msg("failed to write config file")
+		v.logger.Error().Err(err).Msg("failed to save config")
+		v.showErrorModal("Failed to save config")
+		return
 	}
 
 	v.stop()
-	restart()
+	restart(WithInitialFocus("context"))
+}
+
+func (v *view) onConfigureFormCreate(conf config.Config) {
+	if err := v.appCore.CreateConfig(conf); err != nil {
+		v.logger.Error().Err(err).Msg("failed to create config")
+		v.showErrorModal("Failed to create config")
+		return
+	}
+
+	confs, err := v.appCore.GetConfigs()
+
+	if err != nil {
+		v.logger.Error().Err(err).Msg("failed to get configs")
+		v.showErrorModal("Failed to retrieve configs")
+		return
+	}
+
+	v.contextTable.UpdateConfigs(v.appCore.Conf().Name, confs)
+
+	v.focus("context")
 }
 
 func (v *view) onContextSelect(name string) {
 	if err := v.appCore.SetConfig(name); err != nil {
-		v.logger.Error().Err(err).Msg("failed to set new config")
+		v.logger.Error().Err(err).Msg("failed to set new context")
+		v.showErrorModal("Failed to set new context")
 		return
 	}
 
 	v.stop()
-	restart()
+	restart(WithInitialFocus("servers"))
+}
+
+func (v *view) dismissContextDelete() {
+	v.contextToDelete = ""
+	v.app.SetRoot(v.root, true)
 }
 
 func (v *view) onContextDelete(name string) {
-	if err := v.appCore.DeleteConfig(name); err != nil {
-		v.logger.Error().Err(err).Msg("failed to delete config")
+	v.contextToDelete = name
+	buttons := []component.ModalButton{
+		{
+			Label:   "OK",
+			OnClick: v.deleteContext,
+		},
+		{
+			Label:   "Dismiss",
+			OnClick: v.dismissContextDelete,
+		},
+	}
+	contextDeleteConfirm := component.NewModal(
+		fmt.Sprintf("Delete %s configuration?", name),
+		buttons,
+	)
+	v.app.SetRoot(contextDeleteConfirm.Primitive(), false)
+}
+
+func (v *view) deleteContext() {
+	if v.contextToDelete == "" {
 		return
 	}
 
-	v.stop()
-	restart()
+	defer func() {
+		v.contextToDelete = ""
+	}()
+
+	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
+		v.logger.Error().Err(err).Msg("failed to delete config")
+		v.showErrorModal("Failed to delete context")
+		return
+	}
+
+	currentConfig := v.appCore.Conf().Name
+
+	if v.contextToDelete == currentConfig {
+		// deleted current context - restart app
+		v.stop()
+		restart(WithInitialFocus("context"))
+	} else {
+		confs, err := v.appCore.GetConfigs()
+
+		if err != nil {
+			v.logger.Error().Err(err).Msg("failed to get configs")
+			v.showErrorModal("Failed to retrieve configs")
+			return
+		}
+
+		v.contextTable.UpdateConfigs(currentConfig, confs)
+		v.dismissContextDelete()
+	}
+}
+
+func (v *view) showErrorModal(message string) {
+	buttons := []component.ModalButton{
+		{
+			Label:   "Dismiss",
+			OnClick: v.dismissErrorModal,
+		},
+	}
+	errorModal := component.NewModal(
+		message,
+		buttons,
+	)
+	v.app.SetRoot(errorModal.Primitive(), false)
+}
+
+func (v *view) dismissErrorModal() {
+	v.app.SetRoot(v.root, true)
 }
 
 func (v *view) bindKeys() {
@@ -183,7 +285,7 @@ func (v *view) bindKeys() {
 			return evt
 		case key.KeyEsc:
 			if v.showingSwitchViewInput {
-				v.focus()
+				v.focus(v.focusedName)
 				v.showingSwitchViewInput = false
 				return nil
 			}
@@ -204,8 +306,14 @@ func (v *view) bindKeys() {
 	})
 }
 
-func (v *view) focus() {
-	switch v.focusedName {
+func (v *view) focus(name string) {
+	p := v.getFocusNamePrimitive(name)
+
+	if p == nil {
+		return
+	}
+
+	switch name {
 	case "servers":
 		v.header.RemoveAllExtraLegendKeys()
 		v.header.AddLegendKey("ctrl+s", "ssh to selected machine")
@@ -214,9 +322,11 @@ func (v *view) focus() {
 
 		if err != nil {
 			v.logger.Error().Err(err).Msg("")
+			v.showErrorModal("Failed to retrieve configurations from database")
+			return
 		}
 
-		if err == nil && len(confs) > 1 {
+		if len(confs) > 1 {
 			v.header.RemoveAllExtraLegendKeys()
 			v.header.AddLegendKey("ctrl+d", "delete context")
 			v.header.AddLegendKey("enter", "select new context")
@@ -225,8 +335,11 @@ func (v *view) focus() {
 		v.header.RemoveAllExtraLegendKeys()
 	}
 
-	v.pages.SwitchToPage(v.focusedName)
-	v.app.SetFocus(v.focused)
+	v.prevFocusedName = v.focusedName
+	v.focusedName = name
+
+	v.pages.SwitchToPage(name)
+	v.app.SetFocus(p)
 }
 
 func (v *view) onSSH(ip string) {
@@ -235,6 +348,7 @@ func (v *view) onSSH(ip string) {
 	defer func() {
 		if err := restart(); err != nil {
 			v.logger.Error().Err(err).Msg("error restarting ui")
+			os.Exit(1)
 		}
 	}()
 
@@ -313,6 +427,21 @@ func (v *view) processBackgroundEventUpdates() {
 			}
 		}
 	}()
+}
+
+func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
+	switch name {
+	case "servers":
+		return v.serverTable.Primitive()
+	case "events":
+		return v.eventTable.Primitive()
+	case "context":
+		return v.contextTable.Primitive()
+	case "configure":
+		return v.configureForm.Primitive()
+	default:
+		return nil
+	}
 }
 
 func (v *view) run() error {

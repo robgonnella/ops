@@ -26,9 +26,9 @@ func (r *SqliteRepo) Get(name string) (*Config, error) {
 		return nil, errors.New("config name cannot be empty")
 	}
 
-	confModel := ConfigModel{Name: name}
+	confModel := ConfigModel{}
 
-	if result := r.db.First(&confModel); result.Error != nil {
+	if result := r.db.First(&confModel, "name = ?", name); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, exception.ErrRecordNotFound
 		}
@@ -42,10 +42,28 @@ func (r *SqliteRepo) Get(name string) (*Config, error) {
 		return nil, result.Error
 	}
 
-	conf := &Config{}
+	overrides := []SSHOverride{}
 
-	if err := json.Unmarshal([]byte(confModel.Data.String()), conf); err != nil {
+	if err := json.Unmarshal([]byte(confModel.SSH.Overrides.String()), &overrides); err != nil {
 		return nil, err
+	}
+
+	targets := []string{}
+
+	if err := json.Unmarshal([]byte(confModel.Targets.String()), &targets); err != nil {
+		return nil, err
+	}
+
+	conf := &Config{
+		ID:   confModel.ID,
+		Name: confModel.Name,
+		SSH: SSHConfig{
+			User:      confModel.SSH.User,
+			Identity:  confModel.SSH.Identity,
+			Overrides: overrides,
+		},
+		Targets: targets,
+		Loaded:  confModel.Loaded,
 	}
 
 	return conf, nil
@@ -66,8 +84,9 @@ func (r *SqliteRepo) GetAll() ([]*Config, error) {
 	confs := []*Config{}
 
 	for _, m := range confModels {
-		c := &Config{}
-		if err := json.Unmarshal([]byte(m.Data.String()), c); err != nil {
+		c, err := r.Get(m.Name)
+
+		if err != nil {
 			return nil, err
 		}
 
@@ -83,7 +102,13 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 		return nil, errors.New("config name cannot be empty")
 	}
 
-	dataBytes, err := json.Marshal(conf)
+	overridesBytes, err := json.Marshal(conf.SSH.Overrides)
+
+	if err != nil {
+		return nil, err
+	}
+
+	targetsBytes, err := json.Marshal(conf.Targets)
 
 	if err != nil {
 		return nil, err
@@ -91,7 +116,12 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 
 	confModel := &ConfigModel{
 		Name: conf.Name,
-		Data: datatypes.JSON(dataBytes),
+		SSH: SSHConfigModel{
+			User:      conf.SSH.User,
+			Identity:  conf.SSH.Identity,
+			Overrides: datatypes.JSON(overridesBytes),
+		},
+		Targets: datatypes.JSON(targetsBytes),
 	}
 
 	// create or update
@@ -109,19 +139,41 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 
 // Update updates a config in db
 func (r *SqliteRepo) Update(conf *Config) (*Config, error) {
-	if conf.Name == "" {
-		return nil, errors.New("config name cannot be empty")
+	if conf.ID == 0 {
+		return nil, errors.New("config ID cannot be empty")
 	}
 
-	dataBytes, err := json.Marshal(conf)
+	foundModel := ConfigModel{ID: conf.ID}
+
+	if result := r.db.First(&foundModel); result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, exception.ErrRecordNotFound
+		}
+
+		return nil, result.Error
+	}
+
+	overridesByes, err := json.Marshal(conf.SSH.Overrides)
+
+	if err != nil {
+		return nil, err
+	}
+
+	targetBytes, err := json.Marshal(conf.Targets)
 
 	if err != nil {
 		return nil, err
 	}
 
 	confModel := &ConfigModel{
+		ID:   foundModel.ID,
 		Name: conf.Name,
-		Data: datatypes.JSON(dataBytes),
+		SSH: SSHConfigModel{
+			User:      conf.SSH.User,
+			Identity:  conf.SSH.Identity,
+			Overrides: datatypes.JSON(overridesByes),
+		},
+		Targets: datatypes.JSON(targetBytes),
 	}
 
 	if result := r.db.Save(confModel); result.Error != nil {
@@ -137,7 +189,7 @@ func (r *SqliteRepo) Delete(name string) error {
 		return errors.New("config name cannot be empty")
 	}
 
-	return r.db.Delete(&ConfigModel{Name: name}).Error
+	return r.db.Where("name = ?", name).Delete(&ConfigModel{Name: name}).Error
 }
 
 // LastLoaded returns the most recently loaded config
@@ -152,11 +204,5 @@ func (r *SqliteRepo) LastLoaded() (*Config, error) {
 		return nil, result.Error
 	}
 
-	conf := &Config{}
-
-	if err := json.Unmarshal([]byte(confModel.Data.String()), conf); err != nil {
-		return nil, err
-	}
-
-	return conf, nil
+	return r.Get(confModel.Name)
 }

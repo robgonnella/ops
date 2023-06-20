@@ -38,7 +38,7 @@ func TestCore(t *testing.T) {
 			User:     "user",
 			Identity: "identity",
 		},
-		Targets: []string{"target"},
+		Targets: []string{"172.100.1.1/24"},
 	}
 
 	coreService := core.New(
@@ -94,6 +94,25 @@ func TestCore(t *testing.T) {
 
 		assert.NoError(st, err)
 		assert.Equal(st, coreService.Conf(), anotherConf)
+	})
+
+	t.Run("creates config", func(st *testing.T) {
+		newConf := config.Config{
+			Name: "new",
+			SSH: config.SSHConfig{
+				User:     "new-user",
+				Identity: "new-identity",
+			},
+			Targets: []string{"new-target"},
+		}
+
+		mockConfig.EXPECT().Create(&newConf).Return(&newConf, nil)
+
+		err := coreService.CreateConfig(newConf)
+
+		assert.NoError(st, err)
+		// does not update the "set" config in core
+		assert.Equal(st, coreService.Conf(), conf)
 	})
 
 	t.Run("deletes config", func(st *testing.T) {
@@ -155,7 +174,7 @@ func TestCore(t *testing.T) {
 		defer coreService.Stop()
 
 		mockServerService.EXPECT().StreamEvents(gomock.Any())
-		mockServerService.EXPECT().GetAllServers().AnyTimes()
+		mockServerService.EXPECT().GetAllServersInNetworkTargets(conf.Targets)
 		mockScanner.EXPECT().Scan()
 		mockScanner.EXPECT().Stop()
 		mockServerService.EXPECT().StopStream(gomock.Any()).AnyTimes()

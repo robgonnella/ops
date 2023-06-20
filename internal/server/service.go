@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"net"
 
 	"github.com/imdario/mergo"
 	"github.com/robgonnella/ops/internal/config"
@@ -59,6 +60,52 @@ func NewService(conf config.Config, repo Repo) *ServerService {
 // GetAllServers returns all servers from the database
 func (s *ServerService) GetAllServers() ([]*Server, error) {
 	return s.repo.GetAllServers()
+}
+
+func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Server, error) {
+	allServers, err := s.GetAllServers()
+
+	result := []*Server{}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, server := range allServers {
+		for _, target := range targets {
+			_, ipnet, err := net.ParseCIDR(target)
+
+			if err != nil {
+				// non CIDR target just check if target matches IP
+				if server.IP == target {
+					s.logger.Debug().
+						Str("serverIP", server.IP).
+						Str("target", target).
+						Msg("serverIP matches network target")
+					result = append(result, server)
+					break
+				}
+
+				// target is not a cidr and does not match server ip
+				// just continue looping targets
+				continue
+			}
+
+			svrNetIP := net.ParseIP(server.IP)
+
+			if ipnet != nil && ipnet.Contains(svrNetIP) {
+				// server IP is within target CIDR block
+				s.logger.Debug().
+					Str("serverIP", server.IP).
+					Str("target", target).
+					Msg("network target cidr includes serverIP")
+				result = append(result, server)
+				break
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // AddOrUpdateServer adds or updates a server

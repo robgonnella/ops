@@ -72,6 +72,16 @@ func (c *Core) Conf() config.Config {
 	return c.conf
 }
 
+func (c *Core) CreateConfig(conf config.Config) error {
+	_, err := c.configService.Create(&conf)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Core) UpdateConfig(conf config.Config) error {
 	updated, err := c.configService.Update(&conf)
 
