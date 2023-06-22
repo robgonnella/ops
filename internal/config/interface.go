@@ -45,7 +45,7 @@ type ConfigModel struct {
 	Name    string         `gorm:"uniqueIndex"`
 	SSH     SSHConfigModel `gorm:"embedded"`
 	Targets datatypes.JSON
-	Loaded  time.Time
+	Loaded  time.Time `gorm:"index:,sort:desc"`
 }
 
 type Repo interface {
@@ -54,6 +54,7 @@ type Repo interface {
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(name string) error
+	SetLastLoaded(id int) error
 	LastLoaded() (*Config, error)
 }
 
@@ -63,5 +64,6 @@ type Service interface {
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(name string) error
+	SetLastLoaded(id int) error
 	LastLoaded() (*Config, error)
 }

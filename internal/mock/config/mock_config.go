@@ -108,6 +108,20 @@ func (mr *MockRepoMockRecorder) LastLoaded() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastLoaded", reflect.TypeOf((*MockRepo)(nil).LastLoaded))
 }
 
+// SetLastLoaded mocks base method.
+func (m *MockRepo) SetLastLoaded(arg0 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLastLoaded", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLastLoaded indicates an expected call of SetLastLoaded.
+func (mr *MockRepoMockRecorder) SetLastLoaded(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastLoaded", reflect.TypeOf((*MockRepo)(nil).SetLastLoaded), arg0)
+}
+
 // Update mocks base method.
 func (m *MockRepo) Update(arg0 *config.Config) (*config.Config, error) {
 	m.ctrl.T.Helper()
@@ -218,6 +232,20 @@ func (m *MockService) LastLoaded() (*config.Config, error) {
 func (mr *MockServiceMockRecorder) LastLoaded() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastLoaded", reflect.TypeOf((*MockService)(nil).LastLoaded))
+}
+
+// SetLastLoaded mocks base method.
+func (m *MockService) SetLastLoaded(arg0 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetLastLoaded", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLastLoaded indicates an expected call of SetLastLoaded.
+func (mr *MockServiceMockRecorder) SetLastLoaded(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastLoaded", reflect.TypeOf((*MockService)(nil).SetLastLoaded), arg0)
 }
 
 // Update mocks base method.

@@ -55,7 +55,7 @@ type view struct {
 	focusedName            string
 	viewNames              []string
 	showingSwitchViewInput bool
-	logger                 logger.Logger
+	log                    logger.Logger
 }
 
 func newView(userIP string, appCore *core.Core) *view {
@@ -72,7 +72,7 @@ func newView(userIP string, appCore *core.Core) *view {
 		app:                    app,
 		viewNames:              []string{"servers", "events", "context", "configure"},
 		showingSwitchViewInput: false,
-		logger:                 log,
+		log:                    log,
 	}
 
 	allConfigs, _ := v.appCore.GetConfigs()
@@ -160,7 +160,7 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 	}
 
 	if err := v.appCore.UpdateConfig(conf); err != nil {
-		v.logger.Error().Err(err).Msg("failed to save config")
+		v.log.Error().Err(err).Msg("failed to save config")
 		v.showErrorModal("Failed to save config")
 		return
 	}
@@ -171,7 +171,7 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 
 func (v *view) onConfigureFormCreate(conf config.Config) {
 	if err := v.appCore.CreateConfig(conf); err != nil {
-		v.logger.Error().Err(err).Msg("failed to create config")
+		v.log.Error().Err(err).Msg("failed to create config")
 		v.showErrorModal("Failed to create config")
 		return
 	}
@@ -179,7 +179,7 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 	confs, err := v.appCore.GetConfigs()
 
 	if err != nil {
-		v.logger.Error().Err(err).Msg("failed to get configs")
+		v.log.Error().Err(err).Msg("failed to get configs")
 		v.showErrorModal("Failed to retrieve configs")
 		return
 	}
@@ -191,7 +191,7 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 
 func (v *view) onContextSelect(name string) {
 	if err := v.appCore.SetConfig(name); err != nil {
-		v.logger.Error().Err(err).Msg("failed to set new context")
+		v.log.Error().Err(err).Msg("failed to set new context")
 		v.showErrorModal("Failed to set new context")
 		return
 	}
@@ -234,7 +234,7 @@ func (v *view) deleteContext() {
 	}()
 
 	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
-		v.logger.Error().Err(err).Msg("failed to delete config")
+		v.log.Error().Err(err).Msg("failed to delete config")
 		v.showErrorModal("Failed to delete context")
 		return
 	}
@@ -249,7 +249,7 @@ func (v *view) deleteContext() {
 		confs, err := v.appCore.GetConfigs()
 
 		if err != nil {
-			v.logger.Error().Err(err).Msg("failed to get configs")
+			v.log.Error().Err(err).Msg("failed to get configs")
 			v.showErrorModal("Failed to retrieve configs")
 			return
 		}
@@ -321,7 +321,7 @@ func (v *view) focus(name string) {
 		confs, err := v.appCore.GetConfigs()
 
 		if err != nil {
-			v.logger.Error().Err(err).Msg("")
+			v.log.Error().Err(err).Msg("")
 			v.showErrorModal("Failed to retrieve configurations from database")
 			return
 		}
@@ -347,7 +347,7 @@ func (v *view) onSSH(ip string) {
 
 	defer func() {
 		if err := restart(); err != nil {
-			v.logger.Error().Err(err).Msg("error restarting ui")
+			v.log.Error().Err(err).Msg("error restarting ui")
 			os.Exit(1)
 		}
 	}()

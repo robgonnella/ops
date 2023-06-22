@@ -33,6 +33,7 @@ func TestCore(t *testing.T) {
 	)
 
 	conf := config.Config{
+		ID:   1,
 		Name: "default",
 		SSH: config.SSHConfig{
 			User:     "user",
@@ -42,7 +43,7 @@ func TestCore(t *testing.T) {
 	}
 
 	coreService := core.New(
-		conf,
+		&conf,
 		mockConfig,
 		mockServerService,
 		discoveryService,
@@ -58,6 +59,7 @@ func TestCore(t *testing.T) {
 		defer coreService.UpdateConfig(conf)
 
 		newConf := config.Config{
+			ID:   1,
 			Name: "new",
 			SSH: config.SSHConfig{
 				User:     "new-user",
@@ -68,6 +70,8 @@ func TestCore(t *testing.T) {
 
 		mockConfig.EXPECT().Update(&newConf).Return(&newConf, nil)
 		mockConfig.EXPECT().Update(&conf).Return(&conf, nil)
+		mockConfig.EXPECT().SetLastLoaded(newConf.ID)
+		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
 		err := coreService.UpdateConfig(newConf)
 
@@ -79,6 +83,7 @@ func TestCore(t *testing.T) {
 		defer coreService.SetConfig(conf.Name)
 
 		anotherConf := config.Config{
+			ID:   2,
 			Name: "other-conf",
 			SSH: config.SSHConfig{
 				User:     "other-user",
@@ -89,6 +94,8 @@ func TestCore(t *testing.T) {
 
 		mockConfig.EXPECT().Get(anotherConf.Name).Return(&anotherConf, nil)
 		mockConfig.EXPECT().Get(conf.Name).Return(&conf, nil)
+		mockConfig.EXPECT().SetLastLoaded(anotherConf.ID)
+		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
 		err := coreService.SetConfig(anotherConf.Name)
 

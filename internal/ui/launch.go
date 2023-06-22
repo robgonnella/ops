@@ -111,7 +111,7 @@ func (u *UI) Launch(options ...ViewOption) error {
 			conf, err = configService.Create(conf)
 
 			if err != nil {
-				log.Fatal().Err(err)
+				log.Fatal().Err(err).Msg("failed to create default config")
 			}
 		} else {
 			log.Fatal().Err(err).Msg("error loading config")
@@ -124,7 +124,7 @@ func (u *UI) Launch(options ...ViewOption) error {
 	netScanner, err := discovery.NewNmapScanner(conf.Targets)
 
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("")
 	}
 
 	detailScanner := discovery.NewAnsibleIpScanner(*conf)
@@ -135,7 +135,7 @@ func (u *UI) Launch(options ...ViewOption) error {
 		serverService,
 	)
 
-	appCore := core.New(*conf, configService, serverService, scannerService)
+	appCore := core.New(conf, configService, serverService, scannerService)
 
 	userIP := viper.Get("user-ip").(string)
 

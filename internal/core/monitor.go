@@ -45,7 +45,7 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 		"ssh":      payload.SshStatus,
 	}
 
-	c.logger.Info().Fields(fields).Msg("Event Received")
+	c.log.Info().Fields(fields).Msg("Event Received")
 
 	for _, listener := range c.evtListeners {
 		listener.channel <- evt
@@ -70,7 +70,7 @@ func (c *Core) pollForDatabaseUpdates() error {
 			)
 
 			if err != nil {
-				c.logger.Error().Err(err)
+				c.log.Error().Err(err)
 				errCount++
 				continue
 			}

@@ -25,11 +25,11 @@ type ServerPollListener struct {
 type Core struct {
 	ctx                 context.Context
 	cancel              context.CancelFunc
-	conf                config.Config
+	conf                *config.Config
 	configService       config.Service
 	discovery           discovery.Service
 	serverService       server.Service
-	logger              logger.Logger
+	log                 logger.Logger
 	evtListeners        []*EventListener
 	serverPollListeners []*ServerPollListener
 	nextListenerId      int
@@ -38,12 +38,12 @@ type Core struct {
 
 // New returns new core module for given configuration
 func New(
-	conf config.Config,
+	conf *config.Config,
 	configService config.Service,
 	serverService server.Service,
 	discovery discovery.Service,
 ) *Core {
-	logger := logger.New()
+	log := logger.New()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -58,7 +58,7 @@ func New(
 		serverPollListeners: []*ServerPollListener{},
 		nextListenerId:      1,
 		mux:                 sync.Mutex{},
-		logger:              logger,
+		log:                 log,
 	}
 }
 
@@ -69,7 +69,7 @@ func (c *Core) Stop() error {
 }
 
 func (c *Core) Conf() config.Config {
-	return c.conf
+	return *c.conf
 }
 
 func (c *Core) CreateConfig(conf config.Config) error {
@@ -89,7 +89,11 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 		return err
 	}
 
-	c.conf = *updated
+	if err := c.configService.SetLastLoaded(updated.ID); err != nil {
+		return err
+	}
+
+	c.conf = updated
 
 	return nil
 }
@@ -101,7 +105,11 @@ func (c *Core) SetConfig(name string) error {
 		return err
 	}
 
-	c.conf = *conf
+	if err := c.configService.SetLastLoaded(conf.ID); err != nil {
+		return err
+	}
+
+	c.conf = conf
 
 	return nil
 }

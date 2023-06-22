@@ -28,6 +28,10 @@ func (s *ConfigService) Delete(name string) error {
 	return s.repo.Delete(name)
 }
 
+func (s *ConfigService) SetLastLoaded(id int) error {
+	return s.repo.SetLastLoaded(id)
+}
+
 func (s *ConfigService) LastLoaded() (*Config, error) {
 	return s.repo.LastLoaded()
 }

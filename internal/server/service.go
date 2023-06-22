@@ -38,7 +38,7 @@ func filterChannels(channels []*eventChannel, fn func(c *eventChannel) bool) []*
 // ServerService represents our server service implementation
 type ServerService struct {
 	ctx      context.Context
-	logger   logger.Logger
+	log      logger.Logger
 	repo     Repo
 	evtChans []*eventChannel
 }
@@ -51,7 +51,7 @@ func NewService(conf config.Config, repo Repo) *ServerService {
 
 	return &ServerService{
 		ctx:      ctx,
-		logger:   log,
+		log:      log,
 		repo:     repo,
 		evtChans: []*eventChannel{},
 	}
@@ -78,7 +78,7 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 			if err != nil {
 				// non CIDR target just check if target matches IP
 				if server.IP == target {
-					s.logger.Debug().
+					s.log.Debug().
 						Str("serverIP", server.IP).
 						Str("target", target).
 						Msg("serverIP matches network target")
@@ -95,7 +95,7 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 
 			if ipnet != nil && ipnet.Contains(svrNetIP) {
 				// server IP is within target CIDR block
-				s.logger.Debug().
+				s.log.Debug().
 					Str("serverIP", server.IP).
 					Str("target", target).
 					Msg("network target cidr includes serverIP")
@@ -181,7 +181,7 @@ func (s *ServerService) StreamEvents(send chan *event.Event) int {
 }
 
 func (s *ServerService) StopStream(id int) {
-	s.logger.Info().Int("channelID", id).Msg("Filtering channel")
+	s.log.Info().Int("channelID", id).Msg("Filtering channel")
 	s.evtChans = filterChannels(s.evtChans, func(c *eventChannel) bool {
 		return c.id != id
 	})

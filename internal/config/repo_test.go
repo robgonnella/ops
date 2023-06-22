@@ -77,13 +77,20 @@ func TestConfigSqliteRepo(t *testing.T) {
 		assert.NoError(st, err)
 		assertEqualConf(st, newConf, foundConf)
 
-		toUpdate := *conf
-		toUpdate.ID = 1
-		toUpdate.SSH.User = "newUser"
-		updatedConf, err := repo.Update(&toUpdate)
+		toUpdate := &config.Config{
+			ID: newConf.ID,
+			SSH: config.SSHConfig{
+				User:      "new-ssh-user",
+				Identity:  newConf.SSH.Identity,
+				Overrides: newConf.SSH.Overrides,
+			},
+			Targets: newConf.Targets,
+		}
+
+		updatedConf, err := repo.Update(toUpdate)
 
 		assert.NoError(st, err)
-		assert.Equal(st, "newUser", updatedConf.SSH.User)
+		assert.Equal(st, "new-ssh-user", updatedConf.SSH.User)
 
 		err = repo.Delete(conf.Name)
 
@@ -96,9 +103,9 @@ func TestConfigSqliteRepo(t *testing.T) {
 		assert.Nil(st, deletedConfig)
 	})
 
-	t.Run("gets all configs and gets last loaded", func(st *testing.T) {
+	t.Run("gets all configs", func(st *testing.T) {
 		conf1 := &config.Config{
-			Name: "conf1",
+			Name: "test2",
 			SSH: config.SSHConfig{
 				User:     "test-user1",
 				Identity: "test-identity1",
@@ -107,7 +114,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 		}
 
 		conf2 := &config.Config{
-			Name: "conf2",
+			Name: "test3",
 			SSH: config.SSHConfig{
 				User:     "test-user2",
 				Identity: "test-identity2",
@@ -123,22 +130,54 @@ func TestConfigSqliteRepo(t *testing.T) {
 
 		assert.NoError(st, err)
 
-		confs, err := repo.GetAll()
+		allConfigs, err := repo.GetAll()
 
 		assert.NoError(st, err)
-		assert.Equal(st, 2, len(confs))
 
-		for _, c := range confs {
-			if c.Name == "conf1" {
+		for _, c := range allConfigs {
+			if c.Name == conf1.Name {
 				assertEqualConf(st, conf1, c)
-			} else {
+			} else if c.Name == conf2.Name {
 				assertEqualConf(st, conf2, c)
 			}
 		}
 
+	})
+
+	t.Run("gets last loaded", func(st *testing.T) {
+		conf1 := &config.Config{
+			Name: "test4",
+			SSH: config.SSHConfig{
+				User:     "test-user1",
+				Identity: "test-identity1",
+			},
+			Targets: []string{"target1"},
+		}
+
+		conf2 := &config.Config{
+			Name: "test5",
+			SSH: config.SSHConfig{
+				User:     "test-user2",
+				Identity: "test-identity2",
+			},
+			Targets: []string{"target2"},
+		}
+
+		newConf1, err := repo.Create(conf1)
+
+		assert.NoError(st, err)
+
+		_, err = repo.Create(conf2)
+
+		assert.NoError(st, err)
+
+		err = repo.SetLastLoaded(newConf1.ID)
+
+		assert.NoError(st, err)
+
 		lastLoaded, err := repo.LastLoaded()
 
 		assert.NoError(st, err)
-		assertEqualConf(st, conf2, lastLoaded)
+		assertEqualConf(st, newConf1, lastLoaded)
 	})
 }
