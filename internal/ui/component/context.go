@@ -1,6 +1,7 @@
 package component
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -15,26 +16,33 @@ type ConfigContext struct {
 }
 
 func NewConfigContext(
-	current string,
+	current int,
 	confs []*config.Config,
-	onSelect func(name string),
-	onDelete func(name string),
+	onSelect func(id int),
+	onDelete func(name string, id int),
 ) *ConfigContext {
-	colHeaders := []string{"Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
+	colHeaders := []string{"ID", "Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
 		if evt.Key() == key.KeyCtrlD {
 			row, _ := table.GetSelection()
-			name := table.GetCell(row, 0).Text
-			onDelete(name)
+
+			idStr := table.GetCell(row, 0).Text
+			name := table.GetCell(row, 1).Text
+
+			id, _ := strconv.Atoi(idStr)
+
+			onDelete(name, id)
+
 			return nil
 		}
 
 		if evt.Key() == key.KeyEnter {
 			row, _ := table.GetSelection()
-			name := table.GetCell(row, 0).Text
-			onSelect(name)
+			idStr := table.GetCell(row, 0).Text
+			id, _ := strconv.Atoi(idStr)
+			onSelect(id)
 			return nil
 		}
 
@@ -47,10 +55,12 @@ func NewConfigContext(
 	return c
 }
 
-func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
+func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 	c.clearRows()
 
 	for rowIdx, conf := range confs {
+		id := conf.ID
+		idStr := strconv.Itoa(id)
 		name := conf.Name
 		target := strings.Join(conf.Targets, ",")
 		sshUser := conf.SSH.User
@@ -61,10 +71,10 @@ func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
 			overrides = "Y"
 		}
 
-		row := []string{name, target, sshUser, sshIdentity, overrides}
+		row := []string{idStr, name, target, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
-			if name == current && col == 0 {
+			if id == current && col == 1 {
 				text = text + " (selected)"
 			}
 
@@ -72,11 +82,8 @@ func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)
 
-			if name == current {
+			if id == current {
 				cell.SetTextColor(style.ColorOrange)
-				cell.SetSelectable(false)
-			} else {
-				cell.SetSelectable(true)
 			}
 
 			c.root.SetCell(rowIdx+2, col, cell)

@@ -80,7 +80,7 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("sets config", func(st *testing.T) {
-		defer coreService.SetConfig(conf.Name)
+		defer coreService.SetConfig(conf.ID)
 
 		anotherConf := config.Config{
 			ID:   2,
@@ -92,12 +92,12 @@ func TestCore(t *testing.T) {
 			Targets: []string{"other target"},
 		}
 
-		mockConfig.EXPECT().Get(anotherConf.Name).Return(&anotherConf, nil)
-		mockConfig.EXPECT().Get(conf.Name).Return(&conf, nil)
+		mockConfig.EXPECT().Get(anotherConf.ID).Return(&anotherConf, nil)
+		mockConfig.EXPECT().Get(conf.ID).Return(&conf, nil)
 		mockConfig.EXPECT().SetLastLoaded(anotherConf.ID)
 		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
-		err := coreService.SetConfig(anotherConf.Name)
+		err := coreService.SetConfig(anotherConf.ID)
 
 		assert.NoError(st, err)
 		assert.Equal(st, coreService.Conf(), anotherConf)
@@ -123,9 +123,9 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("deletes config", func(st *testing.T) {
-		mockConfig.EXPECT().Delete("someconf").Return(nil)
+		mockConfig.EXPECT().Delete(10).Return(nil)
 
-		err := coreService.DeleteConfig("someconf")
+		err := coreService.DeleteConfig(10)
 
 		assert.NoError(st, err)
 	})

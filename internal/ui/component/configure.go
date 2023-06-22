@@ -201,14 +201,7 @@ func (f *ConfigureForm) addFormButtons() {
 			confOverrides = append(confOverrides, confOverride)
 		}
 
-		id := f.conf.ID
-
-		if f.creatingNewConfig {
-			id = 0
-		}
-
 		conf := config.Config{
-			ID:   id,
 			Name: name,
 			SSH: config.SSHConfig{
 				User:      sshUser,
@@ -224,6 +217,7 @@ func (f *ConfigureForm) addFormButtons() {
 			return
 		}
 
+		conf.ID = f.conf.ID
 		f.onUpdate(conf)
 	})
 }

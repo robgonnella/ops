@@ -20,6 +20,7 @@ func TestConfigService(t *testing.T) {
 
 	t.Run("gets config", func(st *testing.T) {
 		expectedConfig := &config.Config{
+			ID:   1,
 			Name: "test",
 			SSH: config.SSHConfig{
 				User:     "user",
@@ -28,9 +29,9 @@ func TestConfigService(t *testing.T) {
 			Targets: []string{"target"},
 		}
 
-		mockRepo.EXPECT().Get("test").Return(expectedConfig, nil)
+		mockRepo.EXPECT().Get(expectedConfig.ID).Return(expectedConfig, nil)
 
-		foundConf, err := service.Get("test")
+		foundConf, err := service.Get(1)
 
 		assert.NoError(st, err)
 		assert.Equal(st, expectedConfig, foundConf)
@@ -102,11 +103,11 @@ func TestConfigService(t *testing.T) {
 	})
 
 	t.Run("deletes config", func(st *testing.T) {
-		name := "test"
+		id := 10
 
-		mockRepo.EXPECT().Delete(name).Return(nil)
+		mockRepo.EXPECT().Delete(id).Return(nil)
 
-		err := service.Delete(name)
+		err := service.Delete(id)
 
 		assert.NoError(st, err)
 	})

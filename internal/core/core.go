@@ -98,8 +98,8 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 	return nil
 }
 
-func (c *Core) SetConfig(name string) error {
-	conf, err := c.configService.Get(name)
+func (c *Core) SetConfig(id int) error {
+	conf, err := c.configService.Get(id)
 
 	if err != nil {
 		return err
@@ -114,8 +114,8 @@ func (c *Core) SetConfig(name string) error {
 	return nil
 }
 
-func (c *Core) DeleteConfig(name string) error {
-	return c.configService.Delete(name)
+func (c *Core) DeleteConfig(id int) error {
+	return c.configService.Delete(id)
 }
 
 func (c *Core) GetConfigs() ([]*config.Config, error) {

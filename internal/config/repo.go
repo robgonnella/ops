@@ -23,14 +23,14 @@ func NewSqliteRepo(db *gorm.DB) *SqliteRepo {
 }
 
 // Get returns a config from the db
-func (r *SqliteRepo) Get(name string) (*Config, error) {
-	if name == "" {
-		return nil, errors.New("config name cannot be empty")
+func (r *SqliteRepo) Get(id int) (*Config, error) {
+	if id == 0 {
+		return nil, errors.New("config id cannot be empty")
 	}
 
-	confModel := ConfigModel{}
+	confModel := ConfigModel{ID: id}
 
-	if result := r.db.First(&confModel, "name = ?", name); result.Error != nil {
+	if result := r.db.First(&confModel); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, exception.ErrRecordNotFound
 		}
@@ -114,12 +114,12 @@ func (r *SqliteRepo) Update(conf *Config) (*Config, error) {
 }
 
 // Delete deletes a config from db
-func (r *SqliteRepo) Delete(name string) error {
-	if name == "" {
-		return errors.New("config name cannot be empty")
+func (r *SqliteRepo) Delete(id int) error {
+	if id == 0 {
+		return errors.New("config id cannot be empty")
 	}
 
-	return r.db.Where("name = ?", name).Delete(&ConfigModel{Name: name}).Error
+	return r.db.Delete(&ConfigModel{ID: id}).Error
 }
 
 func (r *SqliteRepo) SetLastLoaded(id int) error {
@@ -190,6 +190,7 @@ func configToModel(conf *Config) (*ConfigModel, error) {
 	}
 
 	return &ConfigModel{
+		ID:   conf.ID,
 		Name: conf.Name,
 		SSH: SSHConfigModel{
 			User:      conf.SSH.User,

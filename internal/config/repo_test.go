@@ -44,7 +44,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 	repo := config.NewSqliteRepo(db)
 
 	t.Run("returns record not found error", func(st *testing.T) {
-		_, err := repo.Get("noop")
+		_, err := repo.Get(10)
 
 		assert.Error(st, err)
 		assert.Equal(st, exception.ErrRecordNotFound, err)
@@ -72,7 +72,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 		assert.NoError(st, err)
 		assertEqualConf(st, conf, newConf)
 
-		foundConf, err := repo.Get(newConf.Name)
+		foundConf, err := repo.Get(newConf.ID)
 
 		assert.NoError(st, err)
 		assertEqualConf(st, newConf, foundConf)
@@ -92,11 +92,11 @@ func TestConfigSqliteRepo(t *testing.T) {
 		assert.NoError(st, err)
 		assert.Equal(st, "new-ssh-user", updatedConf.SSH.User)
 
-		err = repo.Delete(conf.Name)
+		err = repo.Delete(updatedConf.ID)
 
 		assert.NoError(st, err)
 
-		deletedConfig, err := repo.Get(conf.Name)
+		deletedConfig, err := repo.Get(updatedConf.ID)
 
 		assert.Error(st, err)
 		assert.Equal(st, exception.ErrRecordNotFound, err)

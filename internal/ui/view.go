@@ -18,19 +18,14 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 	"github.com/robgonnella/ops/internal/ui/component"
 	"github.com/robgonnella/ops/internal/ui/key"
+	"github.com/robgonnella/ops/internal/util"
 )
 
-func restart(options ...ViewOption) error {
-	newUI := NewUI()
-	return newUI.Launch(options...)
-}
+type ViewOption func(v *view)
 
-type ViewOption = func(v *view)
-
-func WithInitialFocus(name string) func(v *view) {
+func WithFocusedView(name string) ViewOption {
 	return func(v *view) {
 		v.focusedName = name
-		v.focus(v.focusedName)
 	}
 }
 
@@ -45,12 +40,12 @@ type view struct {
 	eventTable             *component.EventTable
 	configureForm          *component.ConfigureForm
 	contextTable           *component.ConfigContext
-	contextToDelete        string
+	contextToDelete        int
 	appCore                *core.Core
 	serverUpdateChan       chan []*server.Server
 	eventUpdateChan        chan *event.Event
-	serverPollListenerId   int
-	eventListernId         int
+	serverPollListenerID   int
+	eventListenerID        int
 	prevFocusedName        string
 	focusedName            string
 	viewNames              []string
@@ -61,78 +56,68 @@ type view struct {
 func newView(userIP string, appCore *core.Core) *view {
 	log := logger.New()
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	app := tview.NewApplication()
-
 	v := &view{
-		ctx:                    ctx,
-		cancel:                 cancel,
-		appCore:                appCore,
-		app:                    app,
-		viewNames:              []string{"servers", "events", "context", "configure"},
-		showingSwitchViewInput: false,
-		log:                    log,
+		log:     log,
+		appCore: appCore,
 	}
+
+	v.initialize(userIP)
+
+	return v
+}
+
+func (v *view) initialize(userIP string, options ...ViewOption) {
+	v.ctx, v.cancel = context.WithCancel(context.Background())
+
+	v.viewNames = []string{"servers", "events", "context", "configure"}
+	v.showingSwitchViewInput = false
+
+	v.app = tview.NewApplication()
 
 	allConfigs, _ := v.appCore.GetConfigs()
 
-	root := tview.NewFlex().SetDirection(tview.FlexRow)
-	pages := tview.NewPages()
+	v.root = tview.NewFlex().SetDirection(tview.FlexRow)
+	v.pages = tview.NewPages()
 
-	header := component.NewHeader(
+	v.header = component.NewHeader(
 		userIP,
-		appCore.Conf().Targets,
+		v.appCore.Conf().Targets,
 		v.onActionSubmit,
 	)
-	serverTable := component.NewServerTable(v.onSSH)
-	eventTable := component.NewEventTable()
-	contextTable := component.NewConfigContext(
-		v.appCore.Conf().Name,
+	v.serverTable = component.NewServerTable(v.onSSH)
+	v.eventTable = component.NewEventTable()
+	v.contextTable = component.NewConfigContext(
+		v.appCore.Conf().ID,
 		allConfigs,
 		v.onContextSelect,
 		v.onContextDelete,
 	)
 
-	configureForm := component.NewConfigureForm(
+	v.configureForm = component.NewConfigureForm(
 		v.appCore.Conf(),
 		v.onConfigureFormUpdate,
 		v.onConfigureFormCreate,
 		v.onDismissConfigureForm,
 	)
 
-	pages.AddPage("servers", serverTable.Primitive(), true, false)
-	pages.AddPage("events", eventTable.Primitive(), true, false)
-	pages.AddPage("configure", configureForm.Primitive(), true, false)
-	pages.AddPage("context", contextTable.Primitive(), true, false)
+	v.pages.AddPage("servers", v.serverTable.Primitive(), true, false)
+	v.pages.AddPage("events", v.eventTable.Primitive(), true, false)
+	v.pages.AddPage("configure", v.configureForm.Primitive(), true, false)
+	v.pages.AddPage("context", v.contextTable.Primitive(), true, false)
 
-	root.
-		AddItem(header.Primitive(), 12, 1, false).
-		AddItem(pages, 0, 1, true)
+	v.root.
+		AddItem(v.header.Primitive(), 12, 1, false).
+		AddItem(v.pages, 0, 1, true)
 
-	serverUpdateChan := make(chan []*server.Server, 100)
-	eventUpdateChan := make(chan *event.Event, 100)
-
-	serverPollListenerId := appCore.RegisterServerPollListener(serverUpdateChan)
-	eventListenerId := appCore.RegisterEventListener(eventUpdateChan)
-
-	v.root = root
-	v.pages = pages
-	v.header = header
-	v.serverTable = serverTable
-	v.eventTable = eventTable
-	v.configureForm = configureForm
-	v.contextTable = contextTable
-	v.contextToDelete = ""
-	v.serverUpdateChan = serverUpdateChan
-	v.eventUpdateChan = eventUpdateChan
-	v.serverPollListenerId = serverPollListenerId
-	v.eventListernId = eventListenerId
+	v.serverUpdateChan = make(chan []*server.Server, 100)
+	v.eventUpdateChan = make(chan *event.Event, 100)
 	v.focusedName = "servers"
 
-	v.focus("servers")
+	for _, o := range options {
+		o(v)
+	}
 
-	return v
+	v.focus(v.focusedName)
 }
 
 func (v *view) onActionSubmit(text string) {
@@ -165,8 +150,7 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 		return
 	}
 
-	v.stop()
-	restart(WithInitialFocus("context"))
+	v.restart(WithFocusedView("context"))
 }
 
 func (v *view) onConfigureFormCreate(conf config.Config) {
@@ -184,29 +168,28 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 		return
 	}
 
-	v.contextTable.UpdateConfigs(v.appCore.Conf().Name, confs)
+	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
 
 	v.focus("context")
 }
 
-func (v *view) onContextSelect(name string) {
-	if err := v.appCore.SetConfig(name); err != nil {
+func (v *view) onContextSelect(id int) {
+	if err := v.appCore.SetConfig(id); err != nil {
 		v.log.Error().Err(err).Msg("failed to set new context")
 		v.showErrorModal("Failed to set new context")
 		return
 	}
 
-	v.stop()
-	restart(WithInitialFocus("servers"))
+	v.restart()
 }
 
 func (v *view) dismissContextDelete() {
-	v.contextToDelete = ""
+	v.contextToDelete = 0
 	v.app.SetRoot(v.root, true)
 }
 
-func (v *view) onContextDelete(name string) {
-	v.contextToDelete = name
+func (v *view) onContextDelete(name string, id int) {
+	v.contextToDelete = id
 	buttons := []component.ModalButton{
 		{
 			Label:   "OK",
@@ -225,12 +208,12 @@ func (v *view) onContextDelete(name string) {
 }
 
 func (v *view) deleteContext() {
-	if v.contextToDelete == "" {
+	if v.contextToDelete == 0 {
 		return
 	}
 
 	defer func() {
-		v.contextToDelete = ""
+		v.contextToDelete = 0
 	}()
 
 	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
@@ -239,12 +222,11 @@ func (v *view) deleteContext() {
 		return
 	}
 
-	currentConfig := v.appCore.Conf().Name
+	currentConfig := v.appCore.Conf().ID
 
 	if v.contextToDelete == currentConfig {
 		// deleted current context - restart app
-		v.stop()
-		restart(WithInitialFocus("context"))
+		v.restart(WithFocusedView("context"))
 	} else {
 		confs, err := v.appCore.GetConfigs()
 
@@ -345,12 +327,7 @@ func (v *view) focus(name string) {
 func (v *view) onSSH(ip string) {
 	v.stop()
 
-	defer func() {
-		if err := restart(); err != nil {
-			v.log.Error().Err(err).Msg("error restarting ui")
-			os.Exit(1)
-		}
-	}()
+	defer v.restart()
 
 	conf := v.appCore.Conf()
 	user := conf.SSH.User
@@ -378,16 +355,6 @@ func (v *view) onSSH(ip string) {
 	cmd.Stdin = os.Stdin
 
 	cmd.Run()
-}
-
-func (v *view) stop() {
-	v.appCore.RemoveServerPollListener(v.serverPollListenerId)
-	v.appCore.RemoveEventListener(v.eventListernId)
-	v.cancel()
-	v.appCore.Stop()
-	v.app.Stop()
-	v.ctx = nil
-	v.cancel = nil
 }
 
 func (v *view) processBackgroundServerUpdates() {
@@ -444,8 +411,51 @@ func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
 	}
 }
 
+func (v *view) stop() {
+	v.appCore.RemoveServerPollListener(v.serverPollListenerID)
+	v.appCore.RemoveEventListener(v.eventListenerID)
+	v.serverPollListenerID = 0
+	v.eventListenerID = 0
+	v.cancel()
+	v.appCore.Stop()
+	v.app.Stop()
+	v.ctx = nil
+	v.cancel = nil
+}
+
+func (v *view) restart(options ...ViewOption) {
+	v.stop()
+
+	userIP, cidr, err := util.GetNetworkInfo()
+
+	if err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to get default network info")
+	}
+
+	appCore, err := util.CreateNewAppCore(*cidr)
+
+	if err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to restart app core")
+	}
+
+	v.appCore = appCore
+	v.ctx, v.cancel = context.WithCancel(context.Background())
+	v.initialize(*userIP, options...)
+
+	if err := v.run(); err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to restart view")
+	}
+}
+
 func (v *view) run() error {
 	v.bindKeys()
+	v.serverPollListenerID = v.appCore.RegisterServerPollListener(
+		v.serverUpdateChan,
+	)
+	v.eventListenerID = v.appCore.RegisterEventListener(v.eventUpdateChan)
 	v.processBackgroundServerUpdates()
 	v.processBackgroundEventUpdates()
 	v.appCore.StartDaemon()
