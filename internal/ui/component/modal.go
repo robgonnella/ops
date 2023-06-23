@@ -11,11 +11,11 @@ type ModalButton struct {
 }
 
 type Modal struct {
-	root *TViewModal
+	root *tview.Modal
 }
 
 func NewModal(message string, buttons []ModalButton) *Modal {
-	modal := NewTViewModal()
+	modal := tview.NewModal()
 
 	buttonLabels := []string{}
 
