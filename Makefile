@@ -8,12 +8,18 @@ all: $(PREFIX)/ops
 $(PREFIX)/ops: $(go_deps)
 	cd cli && go build -ldflags '-s -w' -o $(@)
 
+$(PREFIX)/ops-dev: $(go_deps)
+	cd cli && go build -race -ldflags '-s -w' -o $(@)
+
 .PHONY: ops
 ops: $(PREFIX)/ops
 
+.PHONY: dev
+dev: $(PREFIX)/ops-dev
+
 .PHONY: test
 test:
-	go test -v ./...
+	go test -v -race ./...
 
 .PHONY: mock
 mock:

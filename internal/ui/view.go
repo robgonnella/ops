@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -30,8 +29,6 @@ func WithFocusedView(name string) ViewOption {
 }
 
 type view struct {
-	ctx                    context.Context
-	cancel                 context.CancelFunc
 	app                    *tview.Application
 	root                   *tview.Flex
 	pages                  *tview.Pages
@@ -53,7 +50,7 @@ type view struct {
 	log                    logger.Logger
 }
 
-func newView(userIP string, appCore *core.Core) *view {
+func newView(userIP string, allConfigs []*config.Config, appCore *core.Core) *view {
 	log := logger.New()
 
 	v := &view{
@@ -61,20 +58,20 @@ func newView(userIP string, appCore *core.Core) *view {
 		appCore: appCore,
 	}
 
-	v.initialize(userIP)
+	v.initialize(userIP, allConfigs)
 
 	return v
 }
 
-func (v *view) initialize(userIP string, options ...ViewOption) {
-	v.ctx, v.cancel = context.WithCancel(context.Background())
-
+func (v *view) initialize(
+	userIP string,
+	allConfigs []*config.Config,
+	options ...ViewOption,
+) {
 	v.viewNames = []string{"servers", "events", "context", "configure"}
 	v.showingSwitchViewInput = false
 
 	v.app = tview.NewApplication()
-
-	allConfigs, _ := v.appCore.GetConfigs()
 
 	v.root = tview.NewFlex().SetDirection(tview.FlexRow)
 	v.pages = tview.NewPages()
@@ -109,8 +106,8 @@ func (v *view) initialize(userIP string, options ...ViewOption) {
 		AddItem(v.header.Primitive(), 12, 1, false).
 		AddItem(v.pages, 0, 1, true)
 
-	v.serverUpdateChan = make(chan []*server.Server, 100)
-	v.eventUpdateChan = make(chan *event.Event, 100)
+	v.serverUpdateChan = make(chan []*server.Server)
+	v.eventUpdateChan = make(chan *event.Event)
 	v.focusedName = "servers"
 
 	for _, o := range options {
@@ -360,23 +357,22 @@ func (v *view) onSSH(ip string) {
 func (v *view) processBackgroundServerUpdates() {
 	go func() {
 		for {
-			select {
-			case <-v.ctx.Done():
+			servers, ok := <-v.serverUpdateChan
+			if !ok {
 				return
-			case servers := <-v.serverUpdateChan:
-				v.app.QueueUpdateDraw(func() {
-					sort.Slice(servers, func(i, j int) bool {
-						if servers[i].Hostname == "unknown" {
-							return false
-						}
-						if servers[j].Hostname == "unknown" {
-							return true
-						}
-						return servers[i].Hostname < servers[j].Hostname
-					})
-					v.serverTable.UpdateTable(servers)
-				})
 			}
+			v.app.QueueUpdateDraw(func() {
+				sort.Slice(servers, func(i, j int) bool {
+					if servers[i].Hostname == "unknown" {
+						return false
+					}
+					if servers[j].Hostname == "unknown" {
+						return true
+					}
+					return servers[i].Hostname < servers[j].Hostname
+				})
+				v.serverTable.UpdateTable(servers)
+			})
 		}
 	}()
 }
@@ -384,14 +380,13 @@ func (v *view) processBackgroundServerUpdates() {
 func (v *view) processBackgroundEventUpdates() {
 	go func() {
 		for {
-			select {
-			case <-v.ctx.Done():
+			evt, ok := <-v.eventUpdateChan
+			if !ok {
 				return
-			case evt := <-v.eventUpdateChan:
-				v.app.QueueUpdateDraw(func() {
-					v.eventTable.UpdateTable(evt)
-				})
 			}
+			v.app.QueueUpdateDraw(func() {
+				v.eventTable.UpdateTable(evt)
+			})
 		}
 	}()
 }
@@ -416,11 +411,8 @@ func (v *view) stop() {
 	v.appCore.RemoveEventListener(v.eventListenerID)
 	v.serverPollListenerID = 0
 	v.eventListenerID = 0
-	v.cancel()
 	v.appCore.Stop()
 	v.app.Stop()
-	v.ctx = nil
-	v.cancel = nil
 }
 
 func (v *view) restart(options ...ViewOption) {
@@ -441,8 +433,15 @@ func (v *view) restart(options ...ViewOption) {
 	}
 
 	v.appCore = appCore
-	v.ctx, v.cancel = context.WithCancel(context.Background())
-	v.initialize(*userIP, options...)
+
+	allConfigs, err := v.appCore.GetConfigs()
+
+	if err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to retrieve configs")
+	}
+
+	v.initialize(*userIP, allConfigs, options...)
 
 	if err := v.run(); err != nil {
 		restoreStdout()

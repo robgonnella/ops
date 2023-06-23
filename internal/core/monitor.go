@@ -10,12 +10,10 @@ import (
 
 // Run runs the sequence driver for the HostInstallStage
 func (c *Core) Monitor() error {
-	evtReceiveChan := make(chan *event.Event, 100)
+	evtReceiveChan := make(chan *event.Event)
 
 	// create event subscription
-	subscription := c.serverService.StreamEvents(evtReceiveChan)
-
-	defer c.serverService.StopStream(subscription)
+	c.eventSubscription = c.serverService.StreamEvents(evtReceiveChan)
 
 	// Start network scanner
 	go c.discovery.MonitorNetwork()
@@ -24,12 +22,16 @@ func (c *Core) Monitor() error {
 	go c.pollForDatabaseUpdates()
 
 	for {
-		select {
-		case <-c.ctx.Done():
-			return c.ctx.Err()
-		case evt := <-evtReceiveChan:
-			c.handleServerEvent(evt)
+		evt, ok := <-evtReceiveChan
+		if !ok {
+			c.mux.Lock()
+			for _, listener := range c.evtListeners {
+				close(listener.channel)
+			}
+			c.mux.Unlock()
+			return nil
 		}
+		c.handleServerEvent(evt)
 	}
 }
 
@@ -47,6 +49,9 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 
 	c.log.Info().Fields(fields).Msg("Event Received")
 
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
 	for _, listener := range c.evtListeners {
 		listener.channel <- evt
 	}
@@ -59,6 +64,9 @@ func (c *Core) pollForDatabaseUpdates() error {
 	for {
 		select {
 		case <-c.ctx.Done():
+			for _, listener := range c.serverPollListeners {
+				close(listener.channel)
+			}
 			return c.ctx.Err()
 		default:
 			if errCount >= 5 {
@@ -77,9 +85,11 @@ func (c *Core) pollForDatabaseUpdates() error {
 
 			errCount = 0
 
+			c.mux.Lock()
 			for _, listener := range c.serverPollListeners {
 				listener.channel <- response
 			}
+			c.mux.Unlock()
 
 			time.Sleep(pollTime)
 		}
