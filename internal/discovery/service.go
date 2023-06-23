@@ -145,6 +145,8 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 	sshStatus := s.getSSHStatus(result)
 
 	if sshStatus == server.SSHEnabled {
+		s.log.Info().Str("ip", result.IP).Msg("retrieving device details")
+
 		details, err := s.detailScanner.GetServerDetails(s.ctx, result.IP)
 
 		if err == nil {

@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -178,32 +179,64 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("monitors network", func(st *testing.T) {
-		wg := sync.WaitGroup{}
-		wg.Add(2)
-
-		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
-		mockServerService.EXPECT().GetAllServersInNetworkTargets(conf.Targets)
-		mockScanner.EXPECT().Scan().DoAndReturn(func() ([]*discovery.DiscoveryResult, error) {
-			defer func() {
-				coreService.Stop()
-				wg.Done()
-			}()
-			return []*discovery.DiscoveryResult{
-				{
-					ID:       "id",
-					Hostname: "hostname",
-					IP:       "ip",
-					OS:       "os",
-					Status:   server.StatusOnline,
-					Ports: []discovery.Port{
-						{
-							ID:     22,
-							Status: discovery.PortOpen,
-						},
+		discoveryResults := []*discovery.DiscoveryResult{
+			{
+				ID:       "id",
+				Hostname: "hostname",
+				IP:       "ip",
+				OS:       "os",
+				Status:   server.StatusOnline,
+				Ports: []discovery.Port{
+					{
+						ID:     22,
+						Status: discovery.PortOpen,
 					},
 				},
-			}, nil
+			},
+		}
+
+		details := &discovery.Details{
+			Hostname: "hostname",
+			OS:       "os",
+		}
+
+		serverToUpdate := &server.Server{
+			ID:        discoveryResults[0].ID,
+			Hostname:  details.Hostname,
+			IP:        discoveryResults[0].IP,
+			OS:        details.OS,
+			Status:    discoveryResults[0].Status,
+			SshStatus: server.SSHEnabled,
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(5)
+
+		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
+		mockServerService.EXPECT().
+			GetAllServersInNetworkTargets(conf.Targets).
+			Do(func([]string) {
+				wg.Done()
+			})
+		mockScanner.EXPECT().Scan().DoAndReturn(func() ([]*discovery.DiscoveryResult, error) {
+			defer wg.Done()
+			return discoveryResults, nil
 		})
+		mockDetailsScanner.EXPECT().
+			GetServerDetails(gomock.Any(), "ip").
+			DoAndReturn(func(
+				ctx context.Context,
+				ip string,
+			) (*discovery.Details, error) {
+				defer wg.Done()
+				return details, nil
+			})
+		mockServerService.EXPECT().AddOrUpdateServer(serverToUpdate).Do(
+			func(*server.Server) {
+				coreService.Stop()
+				wg.Done()
+			},
+		)
 		mockScanner.EXPECT().Stop()
 		mockServerService.EXPECT().StopStream(1).Do(func(int) {
 			wg.Done()
