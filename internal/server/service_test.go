@@ -50,6 +50,37 @@ func TestServerService(t *testing.T) {
 		assert.Equal(st, expectedServers, foundServers)
 	})
 
+	t.Run("gets all servers in network targets", func(st *testing.T) {
+		targets := []string{"192.168.1.10", "172.16.1.1/24"}
+
+		testServer1 := *testServer
+		testServer2 := *testServer
+		testServer3 := *testServer
+
+		testServer1.IP = "192.168.1.10"
+		testServer2.IP = "172.16.1.42"
+		testServer3.IP = "192.168.1.11"
+
+		testServers := []*server.Server{
+			&testServer1,
+			&testServer2,
+			&testServer3,
+		}
+
+		expectedServers := []*server.Server{
+			&testServer1,
+			&testServer2,
+		}
+
+		mockRepo.EXPECT().GetAllServers().Return(testServers, nil)
+
+		foundServers, err := service.GetAllServersInNetworkTargets(targets)
+
+		assert.NoError(st, err)
+		assert.Equal(st, 2, len(foundServers))
+		assert.Equal(st, expectedServers, foundServers)
+	})
+
 	t.Run("adds server", func(st *testing.T) {
 		mockRepo.EXPECT().GetServerByID(gomock.Any()).Return(nil, exception.ErrRecordNotFound)
 		mockRepo.EXPECT().AddServer(testServer)

@@ -16,7 +16,7 @@ const (
 )
 
 type Server struct {
-	ID        string
+	ID        string `gorm:"primaryKey"`
 	Status    Status
 	Hostname  string
 	IP        string
@@ -35,6 +35,7 @@ type Repo interface {
 
 type Service interface {
 	GetAllServers() ([]*Server, error)
+	GetAllServersInNetworkTargets(targets []string) ([]*Server, error)
 	AddOrUpdateServer(req *Server) error
 	MarkServerOffline(ip string) error
 	StreamEvents(send chan *event.Event) int

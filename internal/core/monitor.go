@@ -45,7 +45,7 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 		"ssh":      payload.SshStatus,
 	}
 
-	c.logger.Info().Fields(fields).Msg("Event Received")
+	c.log.Info().Fields(fields).Msg("Event Received")
 
 	for _, listener := range c.evtListeners {
 		listener.channel <- evt
@@ -65,10 +65,12 @@ func (c *Core) pollForDatabaseUpdates() error {
 				return fmt.Errorf("too many consecutive errors encountered")
 			}
 
-			response, err := c.serverService.GetAllServers()
+			response, err := c.serverService.GetAllServersInNetworkTargets(
+				c.conf.Targets,
+			)
 
 			if err != nil {
-				c.logger.Error().Err(err)
+				c.log.Error().Err(err)
 				errCount++
 				continue
 			}

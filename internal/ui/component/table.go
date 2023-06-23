@@ -11,7 +11,7 @@ func createTable(title string, columnHeaders []string) *tview.Table {
 		SetBorders(false).
 		SetFixed(2, 0).
 		SetSelectable(true, false).
-		SetSelectedStyle(style.StyleDefault.Background(style.ColorLightGreen).Bold(true))
+		SetSelectedStyle(style.StyleDefault.Background(style.ColorPurple).Bold(true))
 
 	table.SetBorder(true)
 

@@ -33,16 +33,17 @@ func TestCore(t *testing.T) {
 	)
 
 	conf := config.Config{
+		ID:   1,
 		Name: "default",
 		SSH: config.SSHConfig{
 			User:     "user",
 			Identity: "identity",
 		},
-		Targets: []string{"target"},
+		Targets: []string{"172.100.1.1/24"},
 	}
 
 	coreService := core.New(
-		conf,
+		&conf,
 		mockConfig,
 		mockServerService,
 		discoveryService,
@@ -58,6 +59,7 @@ func TestCore(t *testing.T) {
 		defer coreService.UpdateConfig(conf)
 
 		newConf := config.Config{
+			ID:   1,
 			Name: "new",
 			SSH: config.SSHConfig{
 				User:     "new-user",
@@ -68,6 +70,8 @@ func TestCore(t *testing.T) {
 
 		mockConfig.EXPECT().Update(&newConf).Return(&newConf, nil)
 		mockConfig.EXPECT().Update(&conf).Return(&conf, nil)
+		mockConfig.EXPECT().SetLastLoaded(newConf.ID)
+		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
 		err := coreService.UpdateConfig(newConf)
 
@@ -76,9 +80,10 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("sets config", func(st *testing.T) {
-		defer coreService.SetConfig(conf.Name)
+		defer coreService.SetConfig(conf.ID)
 
 		anotherConf := config.Config{
+			ID:   2,
 			Name: "other-conf",
 			SSH: config.SSHConfig{
 				User:     "other-user",
@@ -87,19 +92,40 @@ func TestCore(t *testing.T) {
 			Targets: []string{"other target"},
 		}
 
-		mockConfig.EXPECT().Get(anotherConf.Name).Return(&anotherConf, nil)
-		mockConfig.EXPECT().Get(conf.Name).Return(&conf, nil)
+		mockConfig.EXPECT().Get(anotherConf.ID).Return(&anotherConf, nil)
+		mockConfig.EXPECT().Get(conf.ID).Return(&conf, nil)
+		mockConfig.EXPECT().SetLastLoaded(anotherConf.ID)
+		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
-		err := coreService.SetConfig(anotherConf.Name)
+		err := coreService.SetConfig(anotherConf.ID)
 
 		assert.NoError(st, err)
 		assert.Equal(st, coreService.Conf(), anotherConf)
 	})
 
-	t.Run("deletes config", func(st *testing.T) {
-		mockConfig.EXPECT().Delete("someconf").Return(nil)
+	t.Run("creates config", func(st *testing.T) {
+		newConf := config.Config{
+			Name: "new",
+			SSH: config.SSHConfig{
+				User:     "new-user",
+				Identity: "new-identity",
+			},
+			Targets: []string{"new-target"},
+		}
 
-		err := coreService.DeleteConfig("someconf")
+		mockConfig.EXPECT().Create(&newConf).Return(&newConf, nil)
+
+		err := coreService.CreateConfig(newConf)
+
+		assert.NoError(st, err)
+		// does not update the "set" config in core
+		assert.Equal(st, coreService.Conf(), conf)
+	})
+
+	t.Run("deletes config", func(st *testing.T) {
+		mockConfig.EXPECT().Delete(10).Return(nil)
+
+		err := coreService.DeleteConfig(10)
 
 		assert.NoError(st, err)
 	})
@@ -155,7 +181,7 @@ func TestCore(t *testing.T) {
 		defer coreService.Stop()
 
 		mockServerService.EXPECT().StreamEvents(gomock.Any())
-		mockServerService.EXPECT().GetAllServers().AnyTimes()
+		mockServerService.EXPECT().GetAllServersInNetworkTargets(conf.Targets)
 		mockScanner.EXPECT().Scan()
 		mockScanner.EXPECT().Stop()
 		mockServerService.EXPECT().StopStream(gomock.Any()).AnyTimes()

@@ -16,7 +16,7 @@ type NmapScanner struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	scanner *nmap.Scanner
-	logger  logger.Logger
+	log     logger.Logger
 }
 
 // NewNmapScanner returns a new intance of nmap network discovery NmapScanner
@@ -43,7 +43,7 @@ func NewNmapScanner(targets []string) (*NmapScanner, error) {
 	return &NmapScanner{
 		ctx:     ctxWithCancel,
 		cancel:  cancel,
-		logger:  log,
+		log:     log,
 		scanner: scanner,
 	}, nil
 }
@@ -55,7 +55,7 @@ func (s *NmapScanner) Stop() {
 
 // scan targets and ports and return network results
 func (s *NmapScanner) Scan() ([]*DiscoveryResult, error) {
-	s.logger.Info().Msg("Scanning network...")
+	s.log.Info().Msg("Scanning network...")
 
 	result, warnings, err := s.scanner.Run()
 
@@ -66,13 +66,13 @@ func (s *NmapScanner) Scan() ([]*DiscoveryResult, error) {
 			fields[strconv.Itoa(i)] = warning
 		}
 
-		s.logger.Warn().
+		s.log.Warn().
 			Fields(fields).
 			Msg("encountered network scan warnings")
 	}
 
 	if err != nil {
-		s.logger.Error().Err(err).Msg("encountered network scan error")
+		s.log.Error().Err(err).Msg("encountered network scan error")
 		return nil, err
 	}
 

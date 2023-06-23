@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"net"
 
 	"github.com/imdario/mergo"
 	"github.com/robgonnella/ops/internal/config"
@@ -37,7 +38,7 @@ func filterChannels(channels []*eventChannel, fn func(c *eventChannel) bool) []*
 // ServerService represents our server service implementation
 type ServerService struct {
 	ctx      context.Context
-	logger   logger.Logger
+	log      logger.Logger
 	repo     Repo
 	evtChans []*eventChannel
 }
@@ -50,7 +51,7 @@ func NewService(conf config.Config, repo Repo) *ServerService {
 
 	return &ServerService{
 		ctx:      ctx,
-		logger:   log,
+		log:      log,
 		repo:     repo,
 		evtChans: []*eventChannel{},
 	}
@@ -59,6 +60,52 @@ func NewService(conf config.Config, repo Repo) *ServerService {
 // GetAllServers returns all servers from the database
 func (s *ServerService) GetAllServers() ([]*Server, error) {
 	return s.repo.GetAllServers()
+}
+
+func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Server, error) {
+	allServers, err := s.GetAllServers()
+
+	result := []*Server{}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, server := range allServers {
+		for _, target := range targets {
+			_, ipnet, err := net.ParseCIDR(target)
+
+			if err != nil {
+				// non CIDR target just check if target matches IP
+				if server.IP == target {
+					s.log.Debug().
+						Str("serverIP", server.IP).
+						Str("target", target).
+						Msg("serverIP matches network target")
+					result = append(result, server)
+					break
+				}
+
+				// target is not a cidr and does not match server ip
+				// just continue looping targets
+				continue
+			}
+
+			svrNetIP := net.ParseIP(server.IP)
+
+			if ipnet != nil && ipnet.Contains(svrNetIP) {
+				// server IP is within target CIDR block
+				s.log.Debug().
+					Str("serverIP", server.IP).
+					Str("target", target).
+					Msg("network target cidr includes serverIP")
+				result = append(result, server)
+				break
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // AddOrUpdateServer adds or updates a server
@@ -134,7 +181,7 @@ func (s *ServerService) StreamEvents(send chan *event.Event) int {
 }
 
 func (s *ServerService) StopStream(id int) {
-	s.logger.Info().Int("channelID", id).Msg("Filtering channel")
+	s.log.Info().Int("channelID", id).Msg("Filtering channel")
 	s.evtChans = filterChannels(s.evtChans, func(c *eventChannel) bool {
 		return c.id != id
 	})

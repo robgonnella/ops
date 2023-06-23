@@ -18,38 +18,52 @@ type SSHOverride struct {
 
 // SSHConfig represents the config needed to ssh to servers
 type SSHConfig struct {
-	User      string        `json:"user"`
-	Identity  string        `json:"identity"`
-	Overrides []SSHOverride `json:"overrides"`
+	User      string
+	Identity  string
+	Overrides []SSHOverride
 }
 
 // Config represents the data structure of our user provided json configuration
 type Config struct {
-	Name    string    `json:"name"`
-	SSH     SSHConfig `json:"ssh"`
-	Targets []string  `json:"targets"`
+	ID      int
+	Name    string
+	SSH     SSHConfig
+	Targets []string `json:"targets"`
+	Loaded  time.Time
 }
 
+// SSHConfigModel represents the ssh config stored in the database
+type SSHConfigModel struct {
+	User      string
+	Identity  string
+	Overrides datatypes.JSON
+}
+
+// ConfigModel represents the config stored in the database
 type ConfigModel struct {
-	Name   string `gorm:"primaryKey"`
-	Data   datatypes.JSON
-	Loaded time.Time
+	ID      int            `gorm:"primaryKey"`
+	Name    string         `gorm:"uniqueIndex"`
+	SSH     SSHConfigModel `gorm:"embedded"`
+	Targets datatypes.JSON
+	Loaded  time.Time `gorm:"index:,sort:desc"`
 }
 
 type Repo interface {
-	Get(name string) (*Config, error)
+	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
-	Delete(name string) error
+	Delete(id int) error
+	SetLastLoaded(id int) error
 	LastLoaded() (*Config, error)
 }
 
 type Service interface {
-	Get(name string) (*Config, error)
+	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
-	Delete(name string) error
+	Delete(id int) error
+	SetLastLoaded(id int) error
 	LastLoaded() (*Config, error)
 }

@@ -10,6 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func assertEqualConf(t *testing.T, expected, actual *config.Config) {
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.SSH.User, actual.SSH.User)
+	assert.Equal(t, expected.SSH.Identity, actual.SSH.Identity)
+
+	for i, o := range expected.SSH.Overrides {
+		assert.Equal(t, o.Target, actual.SSH.Overrides[i].Target)
+		assert.Equal(t, o.User, actual.SSH.Overrides[i].User)
+		assert.Equal(t, o.Identity, actual.SSH.Overrides[i].Identity)
+	}
+}
+
 func TestConfigSqliteRepo(t *testing.T) {
 	testDBFile := "config.db"
 
@@ -32,7 +44,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 	repo := config.NewSqliteRepo(db)
 
 	t.Run("returns record not found error", func(st *testing.T) {
-		_, err := repo.Get("noop")
+		_, err := repo.Get(10)
 
 		assert.Error(st, err)
 		assert.Equal(st, exception.ErrRecordNotFound, err)
@@ -58,34 +70,42 @@ func TestConfigSqliteRepo(t *testing.T) {
 		newConf, err := repo.Create(conf)
 
 		assert.NoError(st, err)
-		assert.Equal(st, conf, newConf)
+		assertEqualConf(st, conf, newConf)
 
-		foundConf, err := repo.Get(newConf.Name)
-
-		assert.NoError(st, err)
-		assert.Equal(st, newConf, foundConf)
-
-		conf.SSH.User = "newUser"
-
-		updatedConf, err := repo.Update(conf)
+		foundConf, err := repo.Get(newConf.ID)
 
 		assert.NoError(st, err)
-		assert.Equal(st, "newUser", updatedConf.SSH.User)
+		assertEqualConf(st, newConf, foundConf)
 
-		err = repo.Delete(conf.Name)
+		toUpdate := &config.Config{
+			ID: newConf.ID,
+			SSH: config.SSHConfig{
+				User:      "new-ssh-user",
+				Identity:  newConf.SSH.Identity,
+				Overrides: newConf.SSH.Overrides,
+			},
+			Targets: newConf.Targets,
+		}
+
+		updatedConf, err := repo.Update(toUpdate)
+
+		assert.NoError(st, err)
+		assert.Equal(st, "new-ssh-user", updatedConf.SSH.User)
+
+		err = repo.Delete(updatedConf.ID)
 
 		assert.NoError(st, err)
 
-		deletedConfig, err := repo.Get(conf.Name)
+		deletedConfig, err := repo.Get(updatedConf.ID)
 
 		assert.Error(st, err)
 		assert.Equal(st, exception.ErrRecordNotFound, err)
 		assert.Nil(st, deletedConfig)
 	})
 
-	t.Run("gets all configs and gets last loaded", func(st *testing.T) {
+	t.Run("gets all configs", func(st *testing.T) {
 		conf1 := &config.Config{
-			Name: "conf1",
+			Name: "test2",
 			SSH: config.SSHConfig{
 				User:     "test-user1",
 				Identity: "test-identity1",
@@ -94,7 +114,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 		}
 
 		conf2 := &config.Config{
-			Name: "conf2",
+			Name: "test3",
 			SSH: config.SSHConfig{
 				User:     "test-user2",
 				Identity: "test-identity2",
@@ -110,22 +130,54 @@ func TestConfigSqliteRepo(t *testing.T) {
 
 		assert.NoError(st, err)
 
-		confs, err := repo.GetAll()
+		allConfigs, err := repo.GetAll()
 
 		assert.NoError(st, err)
-		assert.Equal(st, 2, len(confs))
 
-		for _, c := range confs {
-			if c.Name == "conf1" {
-				assert.Equal(st, conf1, c)
-			} else {
-				assert.Equal(st, conf2, c)
+		for _, c := range allConfigs {
+			if c.Name == conf1.Name {
+				assertEqualConf(st, conf1, c)
+			} else if c.Name == conf2.Name {
+				assertEqualConf(st, conf2, c)
 			}
 		}
+
+	})
+
+	t.Run("gets last loaded", func(st *testing.T) {
+		conf1 := &config.Config{
+			Name: "test4",
+			SSH: config.SSHConfig{
+				User:     "test-user1",
+				Identity: "test-identity1",
+			},
+			Targets: []string{"target1"},
+		}
+
+		conf2 := &config.Config{
+			Name: "test5",
+			SSH: config.SSHConfig{
+				User:     "test-user2",
+				Identity: "test-identity2",
+			},
+			Targets: []string{"target2"},
+		}
+
+		newConf1, err := repo.Create(conf1)
+
+		assert.NoError(st, err)
+
+		_, err = repo.Create(conf2)
+
+		assert.NoError(st, err)
+
+		err = repo.SetLastLoaded(newConf1.ID)
+
+		assert.NoError(st, err)
 
 		lastLoaded, err := repo.LastLoaded()
 
 		assert.NoError(st, err)
-		assert.Equal(st, conf2, lastLoaded)
+		assertEqualConf(st, newConf1, lastLoaded)
 	})
 }

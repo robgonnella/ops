@@ -15,7 +15,7 @@ type ScannerService struct {
 	scanner       Scanner
 	detailScanner DetailScanner
 	serverService server.Service
-	logger        logger.Logger
+	log           logger.Logger
 }
 
 // NewScannerService returns a new intance of nmap network discovery ScannerService
@@ -31,13 +31,13 @@ func NewScannerService(scanner Scanner, detailScanner DetailScanner, serverServi
 		scanner:       scanner,
 		detailScanner: detailScanner,
 		serverService: serverService,
-		logger:        log,
+		log:           log,
 	}
 }
 
 // MonitorNetwork polls the network and calls out to grpc with the results
 func (s *ScannerService) MonitorNetwork() {
-	s.logger.Info().Msg("Starting network discovery")
+	s.log.Info().Msg("Starting network discovery")
 
 	// blocking call that continuously scans the network on an interval
 	s.pollNetwork()
@@ -57,16 +57,16 @@ func (s *ScannerService) pollNetwork() {
 	for {
 		select {
 		case <-s.ctx.Done():
-			s.logger.Info().Msg("Network polling stopped")
+			s.log.Info().Msg("Network polling stopped")
 			s.cancel()
 			return
 		default:
 			results, err := s.scanner.Scan()
 
 			if err != nil {
-				s.logger.Warn().Err(err).Msg("Error polling network")
+				s.log.Warn().Err(err).Msg("Error polling network")
 			} else {
-				s.logger.Info().
+				s.log.Info().
 					Fields(map[string]interface{}{"count": len(results)}).
 					Msg("Discovery results")
 
@@ -92,21 +92,21 @@ func (s *ScannerService) handleDiscoveryResults(results []*DiscoveryResult) {
 			"deviceType": deviceType,
 		}
 
-		s.logger.Info().Fields(fields).Msg("found network device")
+		s.log.Info().Fields(fields).Msg("found network device")
 
 		switch result.Status {
 		case server.StatusOnline:
 			if deviceType == ServerDevice {
 				go s.setServerToOnline(result)
 			} else {
-				s.logger.Info().
+				s.log.Info().
 					Str("ip", result.IP).
 					Msg("Unknown device detected on network")
 			}
 		case server.StatusOffline:
 			go s.setServerToOffline(result)
 		default:
-			s.logger.Info().
+			s.log.Info().
 				Str("status", string(result.Status)).
 				Msg("Device detected with unimplemented status action")
 		}
@@ -151,7 +151,7 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 			result.Hostname = details.Hostname
 			result.OS = details.OS
 		} else {
-			s.logger.
+			s.log.
 				Error().Err(err).
 				Str("ip", result.IP).
 				Msg("ansible scan failed")
@@ -166,7 +166,7 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 		result.OS = "unknown"
 	}
 
-	s.logger.Info().
+	s.log.Info().
 		Str("ip", result.IP).
 		Msg("marking device online")
 
@@ -180,13 +180,13 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 	})
 
 	if err != nil {
-		s.logger.Error().Err(err).Msg("error marking device online")
+		s.log.Error().Err(err).Msg("error marking device online")
 	}
 }
 
 func (s *ScannerService) setServerToOffline(result *DiscoveryResult) {
-	s.logger.Info().Str("ip", result.IP).Msg("Marking device offline")
+	s.log.Info().Str("ip", result.IP).Msg("Marking device offline")
 	if err := s.serverService.MarkServerOffline(result.IP); err != nil {
-		s.logger.Error().Err(err).Msg("error marking device offline")
+		s.log.Error().Err(err).Msg("error marking device offline")
 	}
 }

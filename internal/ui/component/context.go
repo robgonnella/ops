@@ -1,6 +1,7 @@
 package component
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,43 +15,66 @@ type ConfigContext struct {
 	root *tview.Table
 }
 
-func NewConfigContext(current string, confs []*config.Config, onSelect func(name string), onDelete func(name string)) *ConfigContext {
-	colHeaders := []string{"Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
+func NewConfigContext(
+	current int,
+	confs []*config.Config,
+	onSelect func(id int),
+	onDelete func(name string, id int),
+) *ConfigContext {
+	colHeaders := []string{"ID", "Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
 		if evt.Key() == key.KeyCtrlD {
 			row, _ := table.GetSelection()
-			name := table.GetCell(row, 0).Text
-			onDelete(name)
+
+			idStr := table.GetCell(row, 0).Text
+			name := table.GetCell(row, 1).Text
+
+			id, _ := strconv.Atoi(idStr)
+
+			onDelete(name, id)
+
 			return nil
 		}
 
 		if evt.Key() == key.KeyEnter {
 			row, _ := table.GetSelection()
-			name := table.GetCell(row, 0).Text
-			onSelect(name)
+			idStr := table.GetCell(row, 0).Text
+			id, _ := strconv.Atoi(idStr)
+			onSelect(id)
 			return nil
 		}
 
 		return evt
 	})
 
-	for rowIdx, c := range confs {
-		name := c.Name
-		target := strings.Join(c.Targets, ",")
-		sshUser := c.SSH.User
-		sshIdentity := c.SSH.Identity
+	c := &ConfigContext{root: table}
+	c.UpdateConfigs(current, confs)
+
+	return c
+}
+
+func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
+	c.clearRows()
+
+	for rowIdx, conf := range confs {
+		id := conf.ID
+		idStr := strconv.Itoa(id)
+		name := conf.Name
+		target := strings.Join(conf.Targets, ",")
+		sshUser := conf.SSH.User
+		sshIdentity := conf.SSH.Identity
 		overrides := "N"
 
-		if len(c.SSH.Overrides) > 0 {
+		if len(conf.SSH.Overrides) > 0 {
 			overrides = "Y"
 		}
 
-		row := []string{name, target, sshUser, sshIdentity, overrides}
+		row := []string{idStr, name, target, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
-			if name == current && col == 0 {
+			if id == current && col == 1 {
 				text = text + " (selected)"
 			}
 
@@ -58,20 +82,24 @@ func NewConfigContext(current string, confs []*config.Config, onSelect func(name
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)
 
-			if name == current {
+			if id == current {
 				cell.SetTextColor(style.ColorOrange)
-				cell.SetSelectable(false)
-			} else {
-				cell.SetSelectable(true)
 			}
 
-			table.SetCell(rowIdx+2, col, cell)
+			c.root.SetCell(rowIdx+2, col, cell)
 		}
 	}
-
-	return &ConfigContext{root: table}
 }
 
 func (c *ConfigContext) Primitive() tview.Primitive {
 	return c.root
+}
+
+func (c *ConfigContext) clearRows() {
+	count := c.root.GetRowCount()
+
+	// skip header rows
+	for i := 2; i < count; i++ {
+		c.root.RemoveRow(i)
+	}
 }
