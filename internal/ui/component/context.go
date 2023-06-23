@@ -7,6 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/config"
+	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui/key"
 	"github.com/robgonnella/ops/internal/ui/style"
 )
@@ -21,6 +22,8 @@ func NewConfigContext(
 	onSelect func(id int),
 	onDelete func(name string, id int),
 ) *ConfigContext {
+	log := logger.New()
+
 	colHeaders := []string{"ID", "Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
@@ -31,7 +34,12 @@ func NewConfigContext(
 			idStr := table.GetCell(row, 0).Text
 			name := table.GetCell(row, 1).Text
 
-			id, _ := strconv.Atoi(idStr)
+			id, err := strconv.Atoi(idStr)
+
+			if err != nil {
+				log.Error().Err(err).Msg("failed to delete context")
+				return nil
+			}
 
 			onDelete(name, id)
 
@@ -41,7 +49,11 @@ func NewConfigContext(
 		if evt.Key() == key.KeyEnter {
 			row, _ := table.GetSelection()
 			idStr := table.GetCell(row, 0).Text
-			id, _ := strconv.Atoi(idStr)
+			id, err := strconv.Atoi(idStr)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to select new context")
+				return nil
+			}
 			onSelect(id)
 			return nil
 		}

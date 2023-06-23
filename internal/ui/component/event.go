@@ -1,7 +1,6 @@
 package component
 
 import (
-	"context"
 	"strconv"
 
 	"github.com/rivo/tview"
@@ -11,8 +10,6 @@ import (
 )
 
 type EventTable struct {
-	ctx           context.Context
-	cancel        context.CancelFunc
 	table         *tview.Table
 	columnHeaders []string
 	count         uint
@@ -31,11 +28,7 @@ func NewEventTable() *EventTable {
 		"STATUS",
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &EventTable{
-		ctx:           ctx,
-		cancel:        cancel,
 		table:         createTable("events", columnHeaders),
 		columnHeaders: columnHeaders,
 		count:         0,

@@ -1,8 +1,6 @@
 package component
 
 import (
-	"context"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/server"
@@ -11,16 +9,12 @@ import (
 )
 
 type ServerTable struct {
-	ctx           context.Context
-	cancel        context.CancelFunc
 	table         *tview.Table
 	columnHeaders []string
 }
 
 func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "SSH", "STATUS"}
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	table := createTable("servers", columnHeaders)
 
@@ -36,8 +30,6 @@ func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	})
 
 	return &ServerTable{
-		ctx:           ctx,
-		cancel:        cancel,
 		table:         table,
 		columnHeaders: columnHeaders,
 	}

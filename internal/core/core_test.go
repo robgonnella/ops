@@ -1,8 +1,8 @@
 package core_test
 
 import (
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/robgonnella/ops/internal/config"
@@ -159,7 +159,7 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("registers and removes event listener", func(st *testing.T) {
-		evtChan := make(chan *event.Event, 1)
+		evtChan := make(chan *event.Event)
 		id := coreService.RegisterEventListener(evtChan)
 
 		assert.Equal(st, 1, id)
@@ -168,7 +168,7 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("registers and removes server listener", func(st *testing.T) {
-		serverChan := make(chan []*server.Server, 1)
+		serverChan := make(chan []*server.Server)
 
 		id := coreService.RegisterServerPollListener(serverChan)
 
@@ -178,16 +178,39 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("monitors network", func(st *testing.T) {
-		defer coreService.Stop()
+		wg := sync.WaitGroup{}
+		wg.Add(2)
 
-		mockServerService.EXPECT().StreamEvents(gomock.Any())
+		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
 		mockServerService.EXPECT().GetAllServersInNetworkTargets(conf.Targets)
-		mockScanner.EXPECT().Scan()
+		mockScanner.EXPECT().Scan().DoAndReturn(func() ([]*discovery.DiscoveryResult, error) {
+			defer func() {
+				coreService.Stop()
+				wg.Done()
+			}()
+			return []*discovery.DiscoveryResult{
+				{
+					ID:       "id",
+					Hostname: "hostname",
+					IP:       "ip",
+					OS:       "os",
+					Status:   server.StatusOnline,
+					Ports: []discovery.Port{
+						{
+							ID:     22,
+							Status: discovery.PortOpen,
+						},
+					},
+				},
+			}, nil
+		})
 		mockScanner.EXPECT().Stop()
-		mockServerService.EXPECT().StopStream(gomock.Any()).AnyTimes()
+		mockServerService.EXPECT().StopStream(1).Do(func(int) {
+			wg.Done()
+		})
 
 		go coreService.Monitor()
 
-		time.Sleep(time.Millisecond * 10)
+		wg.Wait()
 	})
 }

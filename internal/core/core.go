@@ -30,6 +30,7 @@ type Core struct {
 	discovery           discovery.Service
 	serverService       server.Service
 	log                 logger.Logger
+	eventSubscription   int
 	evtListeners        []*EventListener
 	serverPollListeners []*ServerPollListener
 	nextListenerId      int
@@ -64,6 +65,9 @@ func New(
 
 func (c *Core) Stop() error {
 	c.discovery.Stop()
+	if c.eventSubscription != 0 {
+		c.serverService.StopStream(c.eventSubscription)
+	}
 	c.cancel()
 	return c.ctx.Err()
 }
@@ -146,6 +150,9 @@ func (c *Core) RemoveEventListener(id int) {
 
 	listeners := []*EventListener{}
 	for _, listener := range c.evtListeners {
+		if listener.id == id {
+			close(listener.channel)
+		}
 		if listener.id != id {
 			listeners = append(listeners, listener)
 		}
@@ -175,6 +182,9 @@ func (c *Core) RemoveServerPollListener(id int) {
 
 	listeners := []*ServerPollListener{}
 	for _, listener := range c.serverPollListeners {
+		if listener.id == id {
+			close(listener.channel)
+		}
 		if listener.id != id {
 			listeners = append(listeners, listener)
 		}

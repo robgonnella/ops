@@ -1,9 +1,9 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"net"
+	"sync"
 
 	"github.com/imdario/mergo"
 	"github.com/robgonnella/ops/internal/config"
@@ -37,23 +37,21 @@ func filterChannels(channels []*eventChannel, fn func(c *eventChannel) bool) []*
 
 // ServerService represents our server service implementation
 type ServerService struct {
-	ctx      context.Context
 	log      logger.Logger
 	repo     Repo
 	evtChans []*eventChannel
+	mux      sync.Mutex
 }
 
 // NewService returns a new instance server service
 func NewService(conf config.Config, repo Repo) *ServerService {
 	log := logger.New()
 
-	ctx := context.Background()
-
 	return &ServerService{
-		ctx:      ctx,
 		log:      log,
 		repo:     repo,
 		evtChans: []*eventChannel{},
+		mux:      sync.Mutex{},
 	}
 }
 
@@ -175,14 +173,22 @@ func (s *ServerService) StreamEvents(send chan *event.Event) int {
 		send: send,
 	}
 
+	s.mux.Lock()
 	s.evtChans = append(s.evtChans, evtChan)
+	s.mux.Unlock()
 
 	return evtChan.id
 }
 
 func (s *ServerService) StopStream(id int) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+
 	s.log.Info().Int("channelID", id).Msg("Filtering channel")
 	s.evtChans = filterChannels(s.evtChans, func(c *eventChannel) bool {
+		if c.id == id {
+			close(c.send)
+		}
 		return c.id != id
 	})
 }
@@ -193,6 +199,8 @@ func (s *ServerService) GetServer(id string) (*Server, error) {
 }
 
 func (s *ServerService) sendServerUpdateEvent(server *Server) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	for _, clientChan := range s.evtChans {
 		clientChan.send <- &event.Event{
 			Type:    event.SeverUpdate,

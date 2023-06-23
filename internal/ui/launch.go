@@ -62,7 +62,13 @@ func (u *UI) Launch() error {
 		log.Fatal().Err(err).Msg("failed to create app core")
 	}
 
-	u.view = newView(*userIP, appCore)
+	allConfigs, err := appCore.GetConfigs()
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to retrieve configs")
+	}
+
+	u.view = newView(*userIP, allConfigs, appCore)
 
 	os.Stdout, _ = os.Open(os.DevNull)
 	os.Stderr, _ = os.Open(os.DevNull)

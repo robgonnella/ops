@@ -127,7 +127,7 @@ func TestServerService(t *testing.T) {
 	})
 
 	t.Run("streams events", func(st *testing.T) {
-		evtChan := make(chan *event.Event, 1)
+		evtChan := make(chan *event.Event)
 
 		streamID := service.StreamEvents(evtChan)
 
