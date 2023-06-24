@@ -13,26 +13,32 @@ managing kubernetes clusters via a terminal ui application.
 
 ## Installation
 
-- homebrew
+- install using golang
+  - dependencies
+    - ansible
+    - nmap
 
 ```bash
-brew install ops
+go install github.com/robgonnella/ops@latest
 ```
 
-- source build & pre-built binaries
+- build from source
   - dependencies
     - golang
     - make
     - ansible
     - nmap
-  - install pre-built binaries
-    - https://github.com/robgonnella/ops/releases
-  - build from source
+
 ```bash
 git clone https://github.com/robgonnella/ops.git
 cd ops
 make install
 ```
+
+- use pre-built binaries: https://github.com/robgonnella/ops/releases
+  - dependencies
+    - nmap
+    - ansible
 
 ## Usage
 
