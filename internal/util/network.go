@@ -50,17 +50,49 @@ func getIPNetByIP(ip net.IP) (*net.IPNet, error) {
 // GetNetworkInfo returns userIP and cidr block for preferred
 // outbound ip of this machine
 func GetNetworkInfo() (*string, *string, error) {
+	// udp doesn't make a full connection and will find the default ip
+	// that traffic will use if say 2 are configured (wired and wireless)
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 
+	var foundIP net.IP
+
 	if err != nil {
-		return nil, nil, err
+		// resort to looping through interfaces
+		ifaces, err := net.Interfaces()
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	OUTER:
+		for _, i := range ifaces {
+			addrs, err := i.Addrs()
+
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				switch v := addr.(type) {
+				case *net.IPAddr:
+					if !v.IP.IsLoopback() {
+						foundIP = v.IP
+						break OUTER
+					}
+				}
+			}
+		}
+
+		if foundIP == nil {
+			return nil, nil, fmt.Errorf("failed to find IP address for this machine")
+		}
+	} else {
+		defer conn.Close()
+		localAddr := conn.LocalAddr().(*net.UDPAddr)
+		foundIP = localAddr.IP
 	}
 
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-	ipnet, err := getIPNetByIP(localAddr.IP)
+	ipnet, err := getIPNetByIP(foundIP)
 
 	if err != nil {
 		return nil, nil, err
@@ -68,7 +100,7 @@ func GetNetworkInfo() (*string, *string, error) {
 
 	size, _ := ipnet.Mask.Size()
 
-	ipCidr := fmt.Sprintf("%s/%d", localAddr.IP, size)
+	ipCidr := fmt.Sprintf("%s/%d", foundIP, size)
 
 	ip, ipnet, err := net.ParseCIDR(ipCidr)
 	if err != nil {
@@ -84,7 +116,7 @@ func GetNetworkInfo() (*string, *string, error) {
 		}
 	}
 
-	userIP := localAddr.IP.String()
+	userIP := foundIP.String()
 	cidr := fmt.Sprintf("%s/%d", firstCidrIP, size)
 
 	return &userIP, &cidr, nil
