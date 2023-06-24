@@ -58,6 +58,10 @@ ops
 ops clear
 ```
 
+## Demo
+
+![](assets/ops-demo.gif)
+
 ## Files and Config
 
 - `ops.db`: Configurations and server details are stored locally on your machine
