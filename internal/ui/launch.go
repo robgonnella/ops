@@ -63,7 +63,7 @@ func (u *UI) Launch() error {
 				fmt.Errorf("invalid log file path: %s", logFile),
 			)
 			log.Info().Msg("disabling logs")
-			zerolog.SetGlobalLevel(zerolog.Disabled)
+			logger.SetGlobalLevel(zerolog.Disabled)
 		} else {
 			file, err := os.OpenFile(
 				logFile,
@@ -74,9 +74,10 @@ func (u *UI) Launch() error {
 			if err != nil {
 				log.Error().Err(err).Msg("")
 				log.Info().Msg("disabling logs")
-				zerolog.SetGlobalLevel(zerolog.Disabled)
+				logger.SetGlobalLevel(zerolog.Disabled)
 			} else {
-				logger.GlobalSetLogFile(file)
+				logger.SetGlobalLogFile(file)
+				logger.SetWithCaller()
 			}
 		}
 	}

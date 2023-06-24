@@ -19,7 +19,6 @@ var logger Logger
 func init() {
 	zl := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).
 		With().
-		Caller().
 		Timestamp().
 		Logger()
 
@@ -33,8 +32,23 @@ func New() Logger {
 	return logger
 }
 
-// GlobalSetLogFile set all loggers to log to file
-func GlobalSetLogFile(f *os.File) {
+// SetGlobalLevel set level for all loggers
+func SetGlobalLevel(level zerolog.Level) {
+	if level == zerolog.DebugLevel {
+		SetWithCaller()
+	}
+
+	zerolog.SetGlobalLevel(level)
+}
+
+// SetWithCaller enables showing caller in log context
+func SetWithCaller() {
+	newZl := logger.zl.With().Caller().Logger()
+	*logger.zl = newZl
+}
+
+// SetGlobalLogFile set all loggers to log to file
+func SetGlobalLogFile(f *os.File) {
 	newZl := logger.zl.Output(f)
 
 	*logger.zl = newZl

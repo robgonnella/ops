@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -23,15 +24,17 @@ func Root(props *CommandProps) *cobra.Command {
 		// This runs before all commands and all sub-commands
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// set logging verbosity for all loggers
-			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			level := zerolog.InfoLevel
 
 			if verbose {
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+				level = zerolog.DebugLevel
 			}
 
 			if silent {
-				zerolog.SetGlobalLevel(zerolog.Disabled)
+				level = zerolog.Disabled
 			}
+
+			logger.SetGlobalLevel(level)
 
 			return nil
 		},
