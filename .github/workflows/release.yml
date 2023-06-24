@@ -1,0 +1,101 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+
+      - name: Build Linux
+        run: 'make release'
+
+      - name: Upload Linux Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux_build_${{ github.run_id }}
+          path: build
+
+  build_darwin:
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+
+      - name: Build Darwin
+        run: 'make release'
+
+      - name: Upload Darwin Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: darwin_build_${{ github.run_id }}
+          path: build
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build_linux, build_darwin]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Download Linux Build
+        uses: actions/download-artifact@v3
+        with:
+          name: linux_build_${{ github.run_id }}
+
+      - name: Download Darwin Build
+        uses: actions/download-artifact@v3
+        with:
+          name: darwin_build_${{ github.run_id }}
+
+      - name: Upload Release Assets
+        id: upload_release_assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: '*.zip'
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+
+  update_latest:
+    runs-on: ubuntu-latest
+    needs: [release]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.19'
+      - name: Update go package to latest
+        run: go install github.com/robgonnella/ops@"${GITHUB_REF#refs/tags/}"
