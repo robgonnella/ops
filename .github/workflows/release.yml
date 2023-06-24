@@ -56,17 +56,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
       - name: Download Linux Build
         uses: actions/download-artifact@v3
         with:
@@ -77,15 +66,15 @@ jobs:
         with:
           name: darwin_build_${{ github.run_id }}
 
-      - name: Upload Release Assets
-        id: upload_release_assets
-        uses: svenstaro/upload-release-action@v2
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: '*.zip'
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
+          files: '*.zip'
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          generate_release_notes: true
 
   update_latest:
     runs-on: ubuntu-latest
