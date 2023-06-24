@@ -4,23 +4,27 @@
 
 ## Prerequisites
 
-- install dependencies
+**Install build and runtime dependencies**
 
+- mac
 ```bash
-brew install make
-brew install go
-brew install nmap
-brew install ansible
+brew install make go nmap ansible git
 ```
 
-- Ensure the path variables are set for golang:
+- debian
+```bash
+sudo apt update && sudo apt install -y make golang nmap ansible git
+```
+
+When building from source you may want to add the following lines to one of your
+rc files to add your user's go bin to the PATH variable.
 
 ```bash
 export GOPATH="$HOME/go"
 PATH="${GOPATH}/bin:$PATH"
 ```
 
-- Install golang dependencies
+**Install test dependencies**
 
 ```bash
 go install github.com/golang/mock/mockgen@v1.6.0

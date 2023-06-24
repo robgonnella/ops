@@ -11,12 +11,50 @@ can override those defaults for individual IPs where needed.
 This project is heavily inspired by [derailed]'s amazing work on [k9s] for
 managing kubernetes clusters via a terminal ui application.
 
+## Runtime Dependencies
+
+Ops has two external runtime dependencies, namely [nmap] and [ansible].
+
+- mac
+```bash
+brew install nmap ansible
+```
+
+- debian
+```bash
+sudo apt update && sudo apt install -y nmap ansible
+```
+
+## Build Dependencies
+
+If building Ops from source you will need a few other build dependencies.
+
+- mac
+```bash
+brew install make go git
+```
+
+- debian
+```bash
+sudo apt update && sudo apt install -y make golang git
+```
+
+When building from source you may want to add the following lines to one of your
+rc files to add your user's go bin to the PATH variable.
+
+```bash
+export GOPATH="$HOME/go"
+PATH="${GOPATH}/bin:$PATH"
+```
+
 ## Installation
 
 - install using golang
   - dependencies
+    - golang
     - ansible
     - nmap
+    - git
 
 ```bash
 go install github.com/robgonnella/ops@latest
@@ -28,6 +66,7 @@ go install github.com/robgonnella/ops@latest
     - make
     - ansible
     - nmap
+    - git
 
 ```bash
 git clone https://github.com/robgonnella/ops.git
