@@ -1,4 +1,4 @@
-# ops
+![](assets/logo-no-background.png)
 
 ## On-Prem Server Management
 

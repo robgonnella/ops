@@ -1,3 +1,5 @@
+![](assets/logo-no-background.png)
+
 # Contributing
 
 ## Prerequisites
