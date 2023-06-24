@@ -2,6 +2,10 @@ package key
 
 import "github.com/gdamore/tcell/v2"
 
+/**
+ * Keys and Runes!
+ */
+
 const (
 	RuneColon = ':'
 )

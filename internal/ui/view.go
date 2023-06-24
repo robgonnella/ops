@@ -20,14 +20,19 @@ import (
 	"github.com/robgonnella/ops/internal/util"
 )
 
-type ViewOption func(v *view)
+// viewOption provides a way to modify our view during initialization
+// this is helpful when restarting the view and focusing a specific page
+type viewOption func(v *view)
 
-func WithFocusedView(name string) ViewOption {
+// withFocusedView sets the option to focus a specific view
+// during initialization
+func withFocusedView(name string) viewOption {
 	return func(v *view) {
 		v.focusedName = name
 	}
 }
 
+// data structure for managing our entire terminal ui application
 type view struct {
 	app                    *tview.Application
 	root                   *tview.Flex
@@ -50,6 +55,7 @@ type view struct {
 	log                    logger.Logger
 }
 
+// returns a new instance of view
 func newView(userIP string, allConfigs []*config.Config, appCore *core.Core) *view {
 	log := logger.New()
 
@@ -63,10 +69,11 @@ func newView(userIP string, allConfigs []*config.Config, appCore *core.Core) *vi
 	return v
 }
 
+// initializes the terminal ui application
 func (v *view) initialize(
 	userIP string,
 	allConfigs []*config.Config,
-	options ...ViewOption,
+	options ...viewOption,
 ) {
 	v.viewNames = []string{"servers", "events", "context", "configure"}
 	v.showingSwitchViewInput = false
@@ -117,6 +124,7 @@ func (v *view) initialize(
 	v.focus(v.focusedName)
 }
 
+// change view based on result from switch view input
 func (v *view) onActionSubmit(text string) {
 	focusedName := ""
 
@@ -131,10 +139,12 @@ func (v *view) onActionSubmit(text string) {
 	v.showingSwitchViewInput = false
 }
 
+// dismisses configuration form - focuses previously focused view
 func (v *view) onDismissConfigureForm() {
 	v.onActionSubmit(v.prevFocusedName)
 }
 
+// updates current config with result from config form inputs
 func (v *view) onConfigureFormUpdate(conf config.Config) {
 	if reflect.DeepEqual(conf, v.appCore.Conf()) {
 		v.onDismissConfigureForm()
@@ -147,9 +157,10 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 		return
 	}
 
-	v.restart(WithFocusedView("context"))
+	v.restart(withFocusedView("context"))
 }
 
+// creates a new config with results from config form inputs
 func (v *view) onConfigureFormCreate(conf config.Config) {
 	if err := v.appCore.CreateConfig(conf); err != nil {
 		v.log.Error().Err(err).Msg("failed to create config")
@@ -170,6 +181,7 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 	v.focus("context")
 }
 
+// selects a new context for network scanning
 func (v *view) onContextSelect(id int) {
 	if err := v.appCore.SetConfig(id); err != nil {
 		v.log.Error().Err(err).Msg("failed to set new context")
@@ -180,11 +192,13 @@ func (v *view) onContextSelect(id int) {
 	v.restart()
 }
 
+// dismisses confirmation modal when deleting a context
 func (v *view) dismissContextDelete() {
 	v.contextToDelete = 0
 	v.app.SetRoot(v.root, true)
 }
 
+// shows confirmation modal when attempting to delete a context
 func (v *view) onContextDelete(name string, id int) {
 	v.contextToDelete = id
 	buttons := []component.ModalButton{
@@ -204,6 +218,7 @@ func (v *view) onContextDelete(name string, id int) {
 	v.app.SetRoot(contextDeleteConfirm.Primitive(), false)
 }
 
+// deletes a network scanning context (configuration)
 func (v *view) deleteContext() {
 	if v.contextToDelete == 0 {
 		return
@@ -223,7 +238,7 @@ func (v *view) deleteContext() {
 
 	if v.contextToDelete == currentConfig {
 		// deleted current context - restart app
-		v.restart(WithFocusedView("context"))
+		v.restart(withFocusedView("context"))
 	} else {
 		confs, err := v.appCore.GetConfigs()
 
@@ -238,6 +253,7 @@ func (v *view) deleteContext() {
 	}
 }
 
+// displays an error modal
 func (v *view) showErrorModal(message string) {
 	buttons := []component.ModalButton{
 		{
@@ -252,10 +268,12 @@ func (v *view) showErrorModal(message string) {
 	v.app.SetRoot(errorModal.Primitive(), false)
 }
 
+// dismisses an error modal
 func (v *view) dismissErrorModal() {
 	v.app.SetRoot(v.root, true)
 }
 
+// binds global key handlers
 func (v *view) bindKeys() {
 	v.app.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
 		switch evt.Key() {
@@ -285,6 +303,8 @@ func (v *view) bindKeys() {
 	})
 }
 
+// focuses a given view by name and updates the legend to display the correct
+// key mappings for that view
 func (v *view) focus(name string) {
 	p := v.getFocusNamePrimitive(name)
 
@@ -321,9 +341,14 @@ func (v *view) focus(name string) {
 	v.app.SetFocus(p)
 }
 
+// Attempts to ssh to the given server using current config's ssh properties.
+// This requires stopping the terminal ui application so we can return
+// to the normal terminal screen. We ensure our terminal app is restarted
+// once the ssh command finishes aka when the user exists the ssh tunnel.
 func (v *view) onSSH(ip string) {
 	v.stop()
 
+	// ensure we restart our tui app
 	defer v.restart()
 
 	conf := v.appCore.Conf()
@@ -354,6 +379,7 @@ func (v *view) onSSH(ip string) {
 	cmd.Run()
 }
 
+// handle incoming server results from database polling
 func (v *view) processBackgroundServerUpdates() {
 	go func() {
 		for {
@@ -377,6 +403,7 @@ func (v *view) processBackgroundServerUpdates() {
 	}()
 }
 
+// handle incoming database events
 func (v *view) processBackgroundEventUpdates() {
 	go func() {
 		for {
@@ -391,6 +418,7 @@ func (v *view) processBackgroundEventUpdates() {
 	}()
 }
 
+// maps names to primitives for focusing
 func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
 	switch name {
 	case "servers":
@@ -406,6 +434,8 @@ func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
 	}
 }
 
+// completely stops the tui app and all backend processes.
+// this requires a full restart including re-instantiation of entire backend
 func (v *view) stop() {
 	v.appCore.RemoveServerPollListener(v.serverPollListenerID)
 	v.appCore.RemoveEventListener(v.eventListenerID)
@@ -415,7 +445,8 @@ func (v *view) stop() {
 	v.app.Stop()
 }
 
-func (v *view) restart(options ...ViewOption) {
+// restarts the entire application including re-instantiation of entire backend
+func (v *view) restart(options ...viewOption) {
 	v.stop()
 
 	userIP, cidr, err := util.GetNetworkInfo()
@@ -449,6 +480,8 @@ func (v *view) restart(options ...ViewOption) {
 	}
 }
 
+// sets up global key handlers, registers event listeners, sets up processing
+// for channel updates, starts backend processes, and starts terminal ui
 func (v *view) run() error {
 	v.bindKeys()
 	v.serverPollListenerID = v.appCore.RegisterServerPollListener(

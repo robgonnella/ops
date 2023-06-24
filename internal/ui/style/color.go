@@ -2,6 +2,10 @@ package style
 
 import "github.com/gdamore/tcell/v2"
 
+/**
+ * Styles and Colors!
+ */
+
 const (
 	ColorDefault     = tcell.ColorDefault
 	ColorBlack       = tcell.ColorBlack

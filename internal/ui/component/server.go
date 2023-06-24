@@ -8,11 +8,13 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
+// ServerTable table displaying all servers for the active context
 type ServerTable struct {
 	table         *tview.Table
 	columnHeaders []string
 }
 
+// NewServerTable returns a new instance of ServerTable
 func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "SSH", "STATUS"}
 
@@ -35,10 +37,14 @@ func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	}
 }
 
+// Primitive returns the root primitive for ServerTable
 func (t *ServerTable) Primitive() tview.Primitive {
 	return t.table
 }
 
+// UpdateTable updates the table with the incoming list of servers from
+// the database. We expect these servers to always be sorted so the ordering
+// should remain relatively consistent.
 func (t *ServerTable) UpdateTable(servers []*server.Server) {
 	for rowIdx, svr := range servers {
 		status := string(svr.Status)

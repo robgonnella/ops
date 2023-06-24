@@ -122,6 +122,7 @@ func (r *SqliteRepo) Delete(id int) error {
 	return r.db.Delete(&ConfigModel{ID: id}).Error
 }
 
+// SetLastLoaded updates a configs "loaded" field to the current timestamp
 func (r *SqliteRepo) SetLastLoaded(id int) error {
 	confModel := ConfigModel{ID: id}
 

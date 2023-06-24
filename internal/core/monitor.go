@@ -8,7 +8,8 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 )
 
-// Run runs the sequence driver for the HostInstallStage
+// Monitor starts the processes for monitoring and tracking
+// devices on the configured network
 func (c *Core) Monitor() error {
 	evtReceiveChan := make(chan *event.Event)
 
@@ -35,6 +36,7 @@ func (c *Core) Monitor() error {
 	}
 }
 
+// handles server events from the database
 func (c *Core) handleServerEvent(evt *event.Event) {
 	payload := evt.Payload.(*server.Server)
 
@@ -57,6 +59,7 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 	}
 }
 
+// polls database for all servers within configured network targets
 func (c *Core) pollForDatabaseUpdates() error {
 	pollTime := time.Second * 2
 	errCount := 0

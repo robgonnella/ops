@@ -9,6 +9,7 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
+// EvenTable table for viewing all incoming events in realtime
 type EventTable struct {
 	table         *tview.Table
 	columnHeaders []string
@@ -16,6 +17,7 @@ type EventTable struct {
 	maxEvents     uint
 }
 
+// NewEventTable returns a new instance of EventTable
 func NewEventTable() *EventTable {
 	columnHeaders := []string{
 		"NO",
@@ -36,10 +38,13 @@ func NewEventTable() *EventTable {
 	}
 }
 
+// Primitive returns the root primitive for EventTable
 func (t *EventTable) Primitive() tview.Primitive {
 	return t.table
 }
 
+// UpdateTable adds a new event to the table and removes oldest row if we've
+// reached configured maximum for events to display
 func (t *EventTable) UpdateTable(evt *event.Event) {
 	t.count++
 	evtType := string(evt.Type)
@@ -65,6 +70,7 @@ func (t *EventTable) UpdateTable(evt *event.Event) {
 		t.table.SetCell(rowIdx, col, cell)
 	}
 
+	// remove oldest row if max reached
 	if t.count > t.maxEvents {
 		t.table.RemoveRow(2)
 	}

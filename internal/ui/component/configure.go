@@ -9,6 +9,7 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
+// ConfigureForm component for updating and creating configurations
 type ConfigureForm struct {
 	root              *tview.Form
 	configName        *tview.InputField
@@ -23,6 +24,7 @@ type ConfigureForm struct {
 	creatingNewConfig bool
 }
 
+// adds blank form inputs and sets styling
 func addBlankFormItems(
 	form *tview.Form,
 	confName string,
@@ -58,6 +60,7 @@ func addBlankFormItems(
 	return configName, sshUserInput, sshIdentityInput, cidrInput
 }
 
+// every time the add ssh override button is clicked we add three new inputs
 func createOverrideInputs() (*tview.InputField, *tview.InputField, *tview.InputField) {
 	overrideTarget := tview.NewInputField()
 	overrideTarget.SetLabel("Override Target: ")
@@ -71,6 +74,7 @@ func createOverrideInputs() (*tview.InputField, *tview.InputField, *tview.InputF
 	return overrideTarget, overrideSSHUser, overrideSSHIdentity
 }
 
+// NewConfigureForm returns a new instance of ConfigureForm
 func NewConfigureForm(
 	conf config.Config,
 	onUpdate func(conf config.Config),
@@ -99,11 +103,13 @@ func NewConfigureForm(
 	}
 }
 
+// Primitive return the root primitive for ConfigureForm
 func (f *ConfigureForm) Primitive() tview.Primitive {
 	f.render()
 	return f.root
 }
 
+// preloads all info based on current active configuration (context)
 func (f *ConfigureForm) render() {
 	f.root.Clear(true)
 	f.overrides = []map[string]*tview.InputField{}
@@ -137,6 +143,7 @@ func (f *ConfigureForm) render() {
 	f.addFormButtons()
 }
 
+// adds buttons to form
 func (f *ConfigureForm) addFormButtons() {
 	f.root.AddButton("Cancel", func() {
 		if f.creatingNewConfig {

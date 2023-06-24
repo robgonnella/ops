@@ -8,6 +8,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+/**
+ * Command to remove database and log files
+ */
 func clear() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear",

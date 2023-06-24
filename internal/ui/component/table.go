@@ -6,6 +6,7 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
+// helper for creating consistently styled tables
 func createTable(title string, columnHeaders []string) *tview.Table {
 	table := tview.NewTable().
 		SetBorders(false).

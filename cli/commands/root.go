@@ -6,11 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// CommandProps injected props that can be made available to all commands
 type CommandProps struct {
 	UI *ui.UI
 }
-
-// flag var to set verbose logging
 
 // Root builds and returns our root command
 func Root(props *CommandProps) *cobra.Command {

@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// SqliteRepo is our repo implementation for sqlite
+// SqliteRepo is our Repo implementation for sqlite
 type SqliteRepo struct {
 	db *gorm.DB
 }
@@ -58,6 +58,7 @@ func (r *SqliteRepo) GetServerByIP(ip string) (*Server, error) {
 	return &server, nil
 }
 
+// AddServer add a new server to the database
 func (r *SqliteRepo) AddServer(server *Server) (*Server, error) {
 	if server.ID == "" {
 		return nil, errors.New("server id cannot be empty")
@@ -70,6 +71,7 @@ func (r *SqliteRepo) AddServer(server *Server) (*Server, error) {
 	return server, nil
 }
 
+// RemoveServer removes a server
 func (r *SqliteRepo) RemoveServer(id string) error {
 	if id == "" {
 		return errors.New("server id cannot be empty")
@@ -78,6 +80,7 @@ func (r *SqliteRepo) RemoveServer(id string) error {
 	return r.db.Delete(&Server{ID: id}).Error
 }
 
+// UpdateServer updates an existing server
 func (r *SqliteRepo) UpdateServer(server *Server) (*Server, error) {
 	if server.ID == "" {
 		return nil, errors.New("server id cannot be empty")

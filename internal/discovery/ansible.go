@@ -15,14 +15,17 @@ import (
 	"github.com/robgonnella/ops/internal/config"
 )
 
+// AnsibleIpScanner is an implementation of the DetailScanner interface
 type AnsibleIpScanner struct {
 	conf config.Config
 }
 
+// NewAnsibleIpScanner returns a new instance of AnsibleIpScanner
 func NewAnsibleIpScanner(conf config.Config) *AnsibleIpScanner {
 	return &AnsibleIpScanner{conf: conf}
 }
 
+// GetServerDetails returns server details using ansible's get-facts module
 func (s *AnsibleIpScanner) GetServerDetails(ctx context.Context, ip string) (*Details, error) {
 	if err := os.Setenv(options.AnsibleHostKeyCheckingEnv, "False"); err != nil {
 		return nil, err

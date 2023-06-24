@@ -12,10 +12,12 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
+// ConfigContext table selecting and deleting contexts (configurations)
 type ConfigContext struct {
 	root *tview.Table
 }
 
+// NewConfigContext returns a new instance of NewConfigContext
 func NewConfigContext(
 	current int,
 	confs []*config.Config,
@@ -67,6 +69,7 @@ func NewConfigContext(
 	return c
 }
 
+// UpdateConfigs updates the table with a new list of contexts
 func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 	c.clearRows()
 
@@ -103,10 +106,12 @@ func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 	}
 }
 
+// Primitive returns the root primitive for ConfigContext
 func (c *ConfigContext) Primitive() tview.Primitive {
 	return c.root
 }
 
+// removes all row from table
 func (c *ConfigContext) clearRows() {
 	count := c.root.GetRowCount()
 

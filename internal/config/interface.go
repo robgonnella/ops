@@ -48,6 +48,7 @@ type ConfigModel struct {
 	Loaded  time.Time `gorm:"index:,sort:desc"`
 }
 
+// Repo interface representing access to stored configs
 type Repo interface {
 	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)
@@ -58,6 +59,7 @@ type Repo interface {
 	LastLoaded() (*Config, error)
 }
 
+// Service interface for manipulating configurations
 type Service interface {
 	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)

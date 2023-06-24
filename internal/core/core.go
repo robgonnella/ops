@@ -11,17 +11,21 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 )
 
+// EventListener represents a registered listener for database events
 type EventListener struct {
 	id      int
 	channel chan *event.Event
 }
 
+// ServerPollListener represents a registered listener for
+// database server polling
 type ServerPollListener struct {
 	id      int
 	channel chan []*server.Server
 }
 
-// Core represents our core data structure
+// Core represents our core data structure through which the ui can interact
+// with the backend
 type Core struct {
 	ctx                 context.Context
 	cancel              context.CancelFunc
@@ -63,6 +67,9 @@ func New(
 	}
 }
 
+// Stop stops all processes managed by Core
+// The core will be useless after calling stop, a new one must be
+// instantiated to continue.
 func (c *Core) Stop() error {
 	c.discovery.Stop()
 	if c.eventSubscription != 0 {
@@ -72,10 +79,12 @@ func (c *Core) Stop() error {
 	return c.ctx.Err()
 }
 
+// Conf return the currently loaded configuration
 func (c *Core) Conf() config.Config {
 	return *c.conf
 }
 
+// CreateConfig creates a new config in the database
 func (c *Core) CreateConfig(conf config.Config) error {
 	_, err := c.configService.Create(&conf)
 
@@ -86,6 +95,7 @@ func (c *Core) CreateConfig(conf config.Config) error {
 	return nil
 }
 
+// UpdateConfig updates an existing config in the database
 func (c *Core) UpdateConfig(conf config.Config) error {
 	updated, err := c.configService.Update(&conf)
 
@@ -102,6 +112,7 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 	return nil
 }
 
+// SetConfig sets the current active configuration
 func (c *Core) SetConfig(id int) error {
 	conf, err := c.configService.Get(id)
 
@@ -118,18 +129,22 @@ func (c *Core) SetConfig(id int) error {
 	return nil
 }
 
+// DeleteConfig deletes a configuration
 func (c *Core) DeleteConfig(id int) error {
 	return c.configService.Delete(id)
 }
 
+// GetConfigs returns all stored configs
 func (c *Core) GetConfigs() ([]*config.Config, error) {
 	return c.configService.GetAll()
 }
 
+// StartDaemon starts the network monitoring processes in a goroutine
 func (c *Core) StartDaemon() {
 	go c.Monitor()
 }
 
+// RegisterEventListener registers a channel as a listener for database events
 func (c *Core) RegisterEventListener(channel chan *event.Event) int {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -144,6 +159,8 @@ func (c *Core) RegisterEventListener(channel chan *event.Event) int {
 	return listener.id
 }
 
+// RemoveEventListener removes and closes a channel previously
+// registered as a listener
 func (c *Core) RemoveEventListener(id int) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -161,6 +178,8 @@ func (c *Core) RemoveEventListener(id int) {
 	c.evtListeners = listeners
 }
 
+// RegisterServerPollListener registers a channel as a
+// listener for server polling results
 func (c *Core) RegisterServerPollListener(channel chan []*server.Server) int {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -176,6 +195,8 @@ func (c *Core) RegisterServerPollListener(channel chan []*server.Server) int {
 	return listener.id
 }
 
+// RemoveServerPollListener removes and closes a channel previously
+// registered to listen for server polling results
 func (c *Core) RemoveServerPollListener(id int) {
 	c.mux.Lock()
 	defer c.mux.Unlock()

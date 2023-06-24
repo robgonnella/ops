@@ -11,13 +11,17 @@ const (
 	UnknownDevice
 )
 
+// PortStatus represents possible port statuses
 type PortStatus string
 
 const (
-	PortOpen   PortStatus = "open"
+	// PortOpen status used when a port is marked open
+	PortOpen PortStatus = "open"
+	// PortClosed status used when a port is marked closed
 	PortClosed PortStatus = "closed"
 )
 
+// Port data structure representing a server port
 type Port struct {
 	ID     uint16
 	Status PortStatus
@@ -33,6 +37,7 @@ type DiscoveryResult struct {
 	Ports    []Port
 }
 
+// Details represents the details returned by DetailScanner
 type Details struct {
 	Hostname string
 	OS       string

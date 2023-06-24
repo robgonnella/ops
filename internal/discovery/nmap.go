@@ -11,7 +11,7 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 )
 
-// NmapScanner implements our discovery service using nmap
+// NmapScanner is an implementation of the Scanner interface
 type NmapScanner struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
@@ -19,7 +19,7 @@ type NmapScanner struct {
 	log     logger.Logger
 }
 
-// NewNmapScanner returns a new intance of nmap network discovery NmapScanner
+// NewNmapScanner returns a new instance of NmapScanner
 func NewNmapScanner(targets []string) (*NmapScanner, error) {
 	log := logger.New()
 
@@ -48,7 +48,8 @@ func NewNmapScanner(targets []string) (*NmapScanner, error) {
 	}, nil
 }
 
-// Stop stop network discover
+// Stop stops network scanning. Once called this scanner will be useless,
+// a new one will need to be instantiated to continue scanning.
 func (s *NmapScanner) Stop() {
 	s.cancel()
 }

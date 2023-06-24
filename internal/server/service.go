@@ -12,18 +12,22 @@ import (
 	"github.com/robgonnella/ops/internal/logger"
 )
 
+// internal var for tracking event listeners
 var channelID = 0
 
+// generates sequential ids for registered event listeners
 func nextChannelID() int {
 	channelID++
 	return channelID
 }
 
+// represents a registered event listener
 type eventChannel struct {
 	id   int
 	send chan *event.Event
 }
 
+// helper for filtering registered event listeners
 func filterChannels(channels []*eventChannel, fn func(c *eventChannel) bool) []*eventChannel {
 	modifiedChannels := []*eventChannel{}
 	for _, evtChan := range channels {
@@ -35,7 +39,7 @@ func filterChannels(channels []*eventChannel, fn func(c *eventChannel) bool) []*
 	return modifiedChannels
 }
 
-// ServerService represents our server service implementation
+// ServerService represents our server.Service implementation
 type ServerService struct {
 	log      logger.Logger
 	repo     Repo
@@ -43,7 +47,7 @@ type ServerService struct {
 	mux      sync.Mutex
 }
 
-// NewService returns a new instance server service
+// NewService returns a new instance ServerService
 func NewService(conf config.Config, repo Repo) *ServerService {
 	log := logger.New()
 
@@ -60,6 +64,8 @@ func (s *ServerService) GetAllServers() ([]*Server, error) {
 	return s.repo.GetAllServers()
 }
 
+// GetAllServersInNetworkTargets returns all servers in database that have ips
+// within the provided list of network targets
 func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Server, error) {
 	allServers, err := s.GetAllServers()
 
@@ -166,7 +172,7 @@ func (s *ServerService) MarkServerOffline(ip string) error {
 	return err
 }
 
-// StreamEvents streams server updates to client
+// StreamEvents registers a listener for database updates
 func (s *ServerService) StreamEvents(send chan *event.Event) int {
 	evtChan := &eventChannel{
 		id:   nextChannelID(),
@@ -180,6 +186,7 @@ func (s *ServerService) StreamEvents(send chan *event.Event) int {
 	return evtChan.id
 }
 
+// StopStream removes and closes channel for a specific registered listener
 func (s *ServerService) StopStream(id int) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -198,6 +205,7 @@ func (s *ServerService) GetServer(id string) (*Server, error) {
 	return s.repo.GetServerByID(id)
 }
 
+// sends out server update events to all registered listeners
 func (s *ServerService) sendServerUpdateEvent(server *Server) {
 	s.mux.Lock()
 	defer s.mux.Unlock()

@@ -13,6 +13,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+/**
+ * Main entry point for all commands
+ * Here we setup environment config via viper
+ */
+
 func setRuntTimeConfig() error {
 	userHomeDir, err := os.UserHomeDir()
 
@@ -57,7 +62,7 @@ func setRuntTimeConfig() error {
 	return nil
 }
 
-// Entry point for the cli.
+// Entry point for the cli
 func main() {
 	log := logger.New()
 

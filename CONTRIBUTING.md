@@ -58,16 +58,22 @@ make test
 
 ```bash
 make ops
+
+# build development version that detects race conditions
+make dev
 ```
 
 ## Run
 
 ```bash
 ./build/ops
+
+# run development build
+./build/ops-dev
 ```
 
 - clear database file and log file
 
 ```bash
-./build/ops clean
+./build/ops clear
 ```

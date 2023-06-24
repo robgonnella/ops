@@ -8,7 +8,7 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 )
 
-// ScannerService implements our discovery service using nmap
+// ScannerService implements the Service interface for monitoring a network
 type ScannerService struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
@@ -18,8 +18,12 @@ type ScannerService struct {
 	log           logger.Logger
 }
 
-// NewScannerService returns a new intance of nmap network discovery ScannerService
-func NewScannerService(scanner Scanner, detailScanner DetailScanner, serverService server.Service) *ScannerService {
+// NewScannerService returns a new instance of ScannerService
+func NewScannerService(
+	scanner Scanner,
+	detailScanner DetailScanner,
+	serverService server.Service,
+) *ScannerService {
 	log := logger.New()
 
 	// Use a cancelable context so we can properly cleanup when needed
@@ -35,7 +39,7 @@ func NewScannerService(scanner Scanner, detailScanner DetailScanner, serverServi
 	}
 }
 
-// MonitorNetwork polls the network and calls out to grpc with the results
+// MonitorNetwork polls the network to discover and track devices
 func (s *ScannerService) MonitorNetwork() {
 	s.log.Info().Msg("Starting network discovery")
 
@@ -43,14 +47,15 @@ func (s *ScannerService) MonitorNetwork() {
 	s.pollNetwork()
 }
 
-// Stop stop network discover
+// Stop stop network discover. Once called this service will be useless.
+// A new one must be instantiated to continue
 func (s *ScannerService) Stop() {
 	s.scanner.Stop()
 	s.cancel()
 }
 
 // private
-// pollNetwork runs Discover function on an interval to discover devices on the network
+// make polling calls to scanner.Scan()
 func (s *ScannerService) pollNetwork() {
 	pollTime := time.Second * 30
 
@@ -78,6 +83,7 @@ func (s *ScannerService) pollNetwork() {
 	}
 }
 
+// handle results found during polling
 func (s *ScannerService) handleDiscoveryResults(results []*DiscoveryResult) {
 	for _, result := range results {
 		deviceType := s.getDeviceType(result)
@@ -113,6 +119,7 @@ func (s *ScannerService) handleDiscoveryResults(results []*DiscoveryResult) {
 	}
 }
 
+// if port 22 is detected then we can assume its a server
 func (s *ScannerService) getDeviceType(result *DiscoveryResult) DeviceType {
 	for _, port := range result.Ports {
 		if port.ID == 22 {
@@ -123,6 +130,7 @@ func (s *ScannerService) getDeviceType(result *DiscoveryResult) DeviceType {
 	return UnknownDevice
 }
 
+// checks if port is 22 and whether the port is open or closed
 func (s *ScannerService) getSSHStatus(result *DiscoveryResult) server.SSHStatus {
 	for _, port := range result.Ports {
 		if port.ID == 22 {
@@ -137,11 +145,8 @@ func (s *ScannerService) getSSHStatus(result *DiscoveryResult) server.SSHStatus 
 	return server.SSHDisabled
 }
 
-// makes a call to our grpc server with a request to update the servers status
-// to online. We also checke that server's associated services and update each
-// service's status accordingly.
+// makes a call to our server service to update the servers status to online
 func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
-	// finally update our server to "online"
 	sshStatus := s.getSSHStatus(result)
 
 	if sshStatus == server.SSHEnabled {
@@ -186,6 +191,7 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 	}
 }
 
+// makes a call to our server service to set a device to "offline"
 func (s *ScannerService) setServerToOffline(result *DiscoveryResult) {
 	s.log.Info().Str("ip", result.IP).Msg("Marking device offline")
 	if err := s.serverService.MarkServerOffline(result.IP); err != nil {

@@ -4,17 +4,26 @@ import "github.com/robgonnella/ops/internal/event"
 
 //go:generate mockgen -destination=../mock/server/mock_server.go -package=mock_server . Repo,Service
 
+// Status represents possible server statues
 type Status string
+
+// SSHStatus represents possible server ssh statuses
 type SSHStatus string
 
 const (
-	StatusUnknown Status    = "unknown"
-	StatusOnline  Status    = "online"
-	StatusOffline Status    = "offline"
-	SSHEnabled    SSHStatus = "enabled"
-	SSHDisabled   SSHStatus = "disabled"
+	// StatusUnknown unknown status for server
+	StatusUnknown Status = "unknown"
+	// StatusOnline status if server is online
+	StatusOnline Status = "online"
+	// StatusOffline status if server is offline
+	StatusOffline Status = "offline"
+	// SSHEnabled status when server has ssh enabled
+	SSHEnabled SSHStatus = "enabled"
+	// SSHDisabled status when server has ssh disabled
+	SSHDisabled SSHStatus = "disabled"
 )
 
+// Server database model for a server
 type Server struct {
 	ID        string `gorm:"primaryKey"`
 	Status    Status
@@ -24,6 +33,7 @@ type Server struct {
 	SshStatus SSHStatus
 }
 
+// Repo interface for accessing stored servers
 type Repo interface {
 	GetAllServers() ([]*Server, error)
 	GetServerByID(serverID string) (*Server, error)
@@ -33,6 +43,7 @@ type Repo interface {
 	RemoveServer(id string) error
 }
 
+// Service interface for server related logic
 type Service interface {
 	GetAllServers() ([]*Server, error)
 	GetAllServersInNetworkTargets(targets []string) ([]*Server, error)

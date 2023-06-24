@@ -16,6 +16,7 @@ const appText = `
 ╚██████╔╝██║     ███████║
  ╚═════╝ ╚═╝     ╚══════╝`
 
+// Header shown above all views. Includes app title and dynamic key legend
 type Header struct {
 	root            *tview.Flex
 	legendContainer *tview.Flex
@@ -26,7 +27,12 @@ type Header struct {
 	extraLegendMap  map[string]tview.Primitive
 }
 
-func NewHeader(userIP string, targets []string, onViewSwitch func(text string)) *Header {
+// NewHeader returns a new instance of Header
+func NewHeader(
+	userIP string,
+	targets []string,
+	onViewSwitch func(text string),
+) *Header {
 	h := &Header{}
 
 	h.root = tview.NewFlex().SetDirection(tview.FlexRow)
@@ -83,10 +89,12 @@ func NewHeader(userIP string, targets []string, onViewSwitch func(text string)) 
 	return h
 }
 
+// Primitive returns the root primitive for Header
 func (h *Header) Primitive() tview.Primitive {
 	return h.root
 }
 
+// AddLegendKey adds a new key and description to the legend
 func (h *Header) AddLegendKey(key, description string) {
 	v := tview.NewTextView().
 		SetText(fmt.Sprintf("\"%s\" - %s", key, description)).
@@ -98,6 +106,7 @@ func (h *Header) AddLegendKey(key, description string) {
 	h.legendCol2.AddItem(v, 0, 1, false)
 }
 
+// RemoveLegendKey removes key and description from legend
 func (h *Header) RemoveLegendKey(key string) {
 	for k, primitive := range h.extraLegendMap {
 		if k == key {
@@ -107,6 +116,8 @@ func (h *Header) RemoveLegendKey(key string) {
 	}
 }
 
+// RemoveAllExtraLegendKeys removes all non-default keys and descriptions
+// from legend
 func (h *Header) RemoveAllExtraLegendKeys() {
 	for k, primitive := range h.extraLegendMap {
 		h.legendCol2.RemoveItem(primitive)
@@ -114,6 +125,7 @@ func (h *Header) RemoveAllExtraLegendKeys() {
 	}
 }
 
+// SwitchViewInput returns access to the Header's SwitchViewInput component
 func (h *Header) SwitchViewInput() *SwitchViewInput {
 	return h.switchViewInput
 }
