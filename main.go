@@ -69,7 +69,7 @@ func main() {
 	err := setRuntTimeConfig()
 
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("")
 	}
 
 	appUI := ui.NewUI()
@@ -83,6 +83,6 @@ func main() {
 	err = cmd.ExecuteContext(context.Background())
 
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("")
 	}
 }

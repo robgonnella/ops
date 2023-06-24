@@ -81,7 +81,7 @@ func (c *Core) pollForDatabaseUpdates() error {
 			)
 
 			if err != nil {
-				c.log.Error().Err(err)
+				c.log.Error().Err(err).Msg("")
 				errCount++
 				continue
 			}
