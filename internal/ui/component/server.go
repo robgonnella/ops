@@ -12,10 +12,12 @@ import (
 type ServerTable struct {
 	table         *tview.Table
 	columnHeaders []string
+	hostIP        string
+	hostHostname  string
 }
 
 // NewServerTable returns a new instance of ServerTable
-func NewServerTable(OnSSH func(ip string)) *ServerTable {
+func NewServerTable(hostHostname, hostIP string, OnSSH func(ip string)) *ServerTable {
 	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "SSH", "STATUS"}
 
 	table := createTable("servers", columnHeaders)
@@ -34,6 +36,8 @@ func NewServerTable(OnSSH func(ip string)) *ServerTable {
 	return &ServerTable{
 		table:         table,
 		columnHeaders: columnHeaders,
+		hostIP:        hostIP,
+		hostHostname:  hostHostname,
 	}
 }
 
@@ -53,10 +57,19 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 		id := svr.ID
 		ip := svr.IP
 		os := svr.OS
+		you := false
+
+		if ip == t.hostIP {
+			hostname = t.hostHostname
+			you = true
+		}
 
 		row := []string{hostname, ip, id, os, ssh, status}
 
 		for col, text := range row {
+			if col == 0 && you {
+				text = text + " (you)"
+			}
 			cell := tview.NewTableCell(text)
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)
@@ -68,6 +81,10 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 
 			if text == "disabled" || text == "offline" {
 				color = style.ColorDimGrey
+			}
+
+			if you {
+				color = style.ColorOrange
 			}
 
 			cell.SetTextColor(color)

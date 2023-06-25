@@ -56,7 +56,7 @@ type view struct {
 }
 
 // returns a new instance of view
-func newView(userIP string, allConfigs []*config.Config, appCore *core.Core) *view {
+func newView(userHostname, userIP string, allConfigs []*config.Config, appCore *core.Core) *view {
 	log := logger.New()
 
 	v := &view{
@@ -64,13 +64,14 @@ func newView(userIP string, allConfigs []*config.Config, appCore *core.Core) *vi
 		appCore: appCore,
 	}
 
-	v.initialize(userIP, allConfigs)
+	v.initialize(userHostname, userIP, allConfigs)
 
 	return v
 }
 
 // initializes the terminal ui application
 func (v *view) initialize(
+	userHostname,
 	userIP string,
 	allConfigs []*config.Config,
 	options ...viewOption,
@@ -88,7 +89,7 @@ func (v *view) initialize(
 		v.appCore.Conf().Targets,
 		v.onActionSubmit,
 	)
-	v.serverTable = component.NewServerTable(v.onSSH)
+	v.serverTable = component.NewServerTable(userHostname, userIP, v.onSSH)
 	v.eventTable = component.NewEventTable()
 	v.contextTable = component.NewConfigContext(
 		v.appCore.Conf().ID,
@@ -456,6 +457,13 @@ func (v *view) restart(options ...viewOption) {
 		v.log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
+	hostname, err := util.Hostname()
+
+	if err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to get hostname for current device")
+	}
+
 	appCore, err := util.CreateNewAppCore(*cidr)
 
 	if err != nil {
@@ -472,7 +480,7 @@ func (v *view) restart(options ...viewOption) {
 		v.log.Fatal().Err(err).Msg("failed to retrieve configs")
 	}
 
-	v.initialize(*userIP, allConfigs, options...)
+	v.initialize(*hostname, *userIP, allConfigs, options...)
 
 	if err := v.run(); err != nil {
 		restoreStdout()

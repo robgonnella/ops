@@ -41,6 +41,12 @@ func (u *UI) Launch() error {
 		log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
+	hostname, err := util.Hostname()
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to get hostname for current device")
+	}
+
 	appCore, err := util.CreateNewAppCore(*cidr)
 
 	if err != nil {
@@ -82,7 +88,7 @@ func (u *UI) Launch() error {
 		}
 	}
 
-	u.view = newView(*userIP, allConfigs, appCore)
+	u.view = newView(*hostname, *userIP, allConfigs, appCore)
 
 	os.Stdout, _ = os.Open(os.DevNull)
 	os.Stderr, _ = os.Open(os.DevNull)
