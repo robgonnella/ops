@@ -39,15 +39,16 @@ brew install make go git
 sudo apt update && sudo apt install -y make golang git
 ```
 
-When building from source you may want to add the following lines to one of your
-rc files to add your user's go bin to the PATH variable.
+## Installation
+
+When installing using golang or building from source, you may want to add the
+following lines to one of your rc files to add your user's go bin to the
+PATH variable. This will make the `ops` command available in your shell.
 
 ```bash
 export GOPATH="$HOME/go"
 PATH="${GOPATH}/bin:$PATH"
 ```
-
-## Installation
 
 - install using golang
   - dependencies
