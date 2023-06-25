@@ -35,6 +35,7 @@ func NewSwitchViewInput(onSubmit func(text string)) *SwitchViewInput {
 	input.SetBlurFunc(func() {
 		input.SetBorder(false)
 		input.SetPlaceholder("")
+		input.SetText("")
 	})
 
 	ai := &SwitchViewInput{
