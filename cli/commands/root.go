@@ -48,6 +48,8 @@ func Root(props *CommandProps) *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&silent, "silent", false, "disables all logging")
 
 	cmd.AddCommand(clear())
+	cmd.AddCommand(version())
+	cmd.AddCommand(info())
 
 	return cmd
 }

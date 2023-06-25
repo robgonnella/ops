@@ -7,8 +7,8 @@ import (
 	"path"
 
 	"github.com/robgonnella/ops/cli/commands"
+	app_info "github.com/robgonnella/ops/internal/app-info"
 	"github.com/robgonnella/ops/internal/logger"
-	"github.com/robgonnella/ops/internal/name"
 	"github.com/robgonnella/ops/internal/ui"
 	"github.com/spf13/viper"
 )
@@ -25,13 +25,13 @@ func setRuntTimeConfig() error {
 		return err
 	}
 
-	configDir := path.Join(userHomeDir, ".config", name.APP_NAME)
+	configDir := path.Join(userHomeDir, ".config", app_info.NAME)
 
 	if err := os.Mkdir(configDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 
-	logFile := path.Join(configDir, name.APP_NAME+".log")
+	logFile := path.Join(configDir, app_info.NAME+".log")
 
 	userCacheDir, err := os.UserCacheDir()
 
@@ -39,13 +39,13 @@ func setRuntTimeConfig() error {
 		return err
 	}
 
-	cacheDir := path.Join(userCacheDir, name.APP_NAME)
+	cacheDir := path.Join(userCacheDir, app_info.NAME)
 
 	if err := os.Mkdir(cacheDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 
-	dbFile := path.Join(cacheDir, name.APP_NAME+".db")
+	dbFile := path.Join(cacheDir, app_info.NAME+".db")
 
 	defaultSSHIdentity := path.Join(userHomeDir, ".ssh", "id_rsa")
 
