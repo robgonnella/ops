@@ -92,10 +92,25 @@ will fail to start.
 ops
 ```
 
+- print version and other details
+
+```bash
+ops version
+ops info
+```
+
 - clear database file and log file
 
 ```bash
 ops clear
+```
+
+- show help / usage
+
+```bash
+ops help
+# or
+ops <cmd> --help
 ```
 
 ## Demo
