@@ -32,6 +32,12 @@ func withFocusedView(name string) viewOption {
 	}
 }
 
+func withShowError(msg string) viewOption {
+	return func(v *view) {
+		v.showErrorModal(msg)
+	}
+}
+
 // data structure for managing our entire terminal ui application
 type view struct {
 	app                    *tview.Application
@@ -118,15 +124,22 @@ func (v *view) initialize(
 	v.eventUpdateChan = make(chan *event.Event)
 	v.focusedName = "servers"
 
-	for _, o := range options {
-		o(v)
-	}
+	go func() {
+		for _, o := range options {
+			o(v)
+		}
+	}()
 
 	v.focus(v.focusedName)
 }
 
 // change view based on result from switch view input
 func (v *view) onActionSubmit(text string) {
+	if text == "q" || text == "quit" {
+		v.stop()
+		return
+	}
+
 	focusedName := ""
 
 	for _, name := range v.viewNames {
@@ -349,9 +362,6 @@ func (v *view) focus(name string) {
 func (v *view) onSSH(ip string) {
 	v.stop()
 
-	// ensure we restart our tui app
-	defer v.restart()
-
 	conf := v.appCore.Conf()
 	user := conf.SSH.User
 	identity := conf.SSH.Identity
@@ -370,14 +380,22 @@ func (v *view) onSSH(ip string) {
 
 	cmd := exec.Command("ssh", "-i", identity, user+"@"+ip)
 
-	os.Stdout = originalStdout
-	os.Stderr = originalStderr
+	restoreStdout()
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	cmd.Run()
+	err := cmd.Run()
+
+	if err != nil {
+		v.restart(
+			withShowError("failed to ssh to " + ip + ": " + err.Error()),
+		)
+		return
+	}
+
+	v.restart()
 }
 
 // handle incoming server results from database polling
@@ -450,24 +468,23 @@ func (v *view) stop() {
 func (v *view) restart(options ...viewOption) {
 	v.stop()
 
+	restoreStdout()
+
 	userIP, cidr, err := util.GetNetworkInfo()
 
 	if err != nil {
-		restoreStdout()
 		v.log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
 	hostname, err := util.Hostname()
 
 	if err != nil {
-		restoreStdout()
 		v.log.Fatal().Err(err).Msg("failed to get hostname for current device")
 	}
 
 	appCore, err := util.CreateNewAppCore(*cidr)
 
 	if err != nil {
-		restoreStdout()
 		v.log.Fatal().Err(err).Msg("failed to restart app core")
 	}
 
@@ -476,9 +493,10 @@ func (v *view) restart(options ...viewOption) {
 	allConfigs, err := v.appCore.GetConfigs()
 
 	if err != nil {
-		restoreStdout()
 		v.log.Fatal().Err(err).Msg("failed to retrieve configs")
 	}
+
+	maskStdout()
 
 	v.initialize(*hostname, *userIP, allConfigs, options...)
 

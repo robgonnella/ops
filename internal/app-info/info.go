@@ -5,4 +5,4 @@ package app_info
 const NAME = "ops"
 
 // VERSION app version
-const VERSION = "v0.1.3"
+const VERSION = "v0.1.4"

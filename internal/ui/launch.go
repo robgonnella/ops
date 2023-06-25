@@ -20,6 +20,12 @@ func restoreStdout() {
 	os.Stderr = originalStderr
 }
 
+// maskStdout
+func maskStdout() {
+	os.Stdout, _ = os.Open(os.DevNull)
+	os.Stderr, _ = os.Open(os.DevNull)
+}
+
 // UI wrapper around view used for initial launch
 type UI struct {
 	view *view
@@ -34,30 +40,6 @@ func NewUI() *UI {
 // our terminal UI application
 func (u *UI) Launch() error {
 	log := logger.New()
-
-	userIP, cidr, err := util.GetNetworkInfo()
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get default network info")
-	}
-
-	hostname, err := util.Hostname()
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get hostname for current device")
-	}
-
-	appCore, err := util.CreateNewAppCore(*cidr)
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create app core")
-	}
-
-	allConfigs, err := appCore.GetConfigs()
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to retrieve configs")
-	}
 
 	level := zerolog.GlobalLevel()
 
@@ -88,10 +70,39 @@ func (u *UI) Launch() error {
 		}
 	}
 
-	u.view = newView(*hostname, *userIP, allConfigs, appCore)
+	maskStdout()
 
-	os.Stdout, _ = os.Open(os.DevNull)
-	os.Stderr, _ = os.Open(os.DevNull)
+	defer restoreStdout()
+
+	userIP, cidr, err := util.GetNetworkInfo()
+
+	if err != nil {
+		restoreStdout()
+		log.Fatal().Err(err).Msg("failed to get default network info")
+	}
+
+	hostname, err := util.Hostname()
+
+	if err != nil {
+		restoreStdout()
+		log.Fatal().Err(err).Msg("failed to get hostname for current device")
+	}
+
+	appCore, err := util.CreateNewAppCore(*cidr)
+
+	if err != nil {
+		restoreStdout()
+		log.Fatal().Err(err).Msg("failed to create app core")
+	}
+
+	allConfigs, err := appCore.GetConfigs()
+
+	if err != nil {
+		restoreStdout()
+		log.Fatal().Err(err).Msg("failed to retrieve configs")
+	}
+
+	u.view = newView(*hostname, *userIP, allConfigs, appCore)
 
 	return u.view.run()
 }
