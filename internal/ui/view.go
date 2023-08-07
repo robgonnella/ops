@@ -62,7 +62,7 @@ type view struct {
 }
 
 // returns a new instance of view
-func newView(userHostname, userIP string, allConfigs []*config.Config, appCore *core.Core) *view {
+func newView(allConfigs []*config.Config, appCore *core.Core) *view {
 	log := logger.New()
 
 	v := &view{
@@ -70,18 +70,18 @@ func newView(userHostname, userIP string, allConfigs []*config.Config, appCore *
 		appCore: appCore,
 	}
 
-	v.initialize(userHostname, userIP, allConfigs)
+	v.initialize(allConfigs)
 
 	return v
 }
 
 // initializes the terminal ui application
 func (v *view) initialize(
-	userHostname,
-	userIP string,
 	allConfigs []*config.Config,
 	options ...viewOption,
 ) {
+	netInfo := v.appCore.NetworkInfo()
+
 	v.viewNames = []string{"servers", "events", "context", "configure"}
 	v.showingSwitchViewInput = false
 
@@ -91,11 +91,15 @@ func (v *view) initialize(
 	v.pages = tview.NewPages()
 
 	v.header = component.NewHeader(
-		userIP,
+		netInfo.UserIP.String(),
 		v.appCore.Conf().Targets,
 		v.onActionSubmit,
 	)
-	v.serverTable = component.NewServerTable(userHostname, userIP, v.onSSH)
+	v.serverTable = component.NewServerTable(
+		netInfo.Hostname,
+		netInfo.UserIP.String(),
+		v.onSSH,
+	)
 	v.eventTable = component.NewEventTable()
 	v.contextTable = component.NewConfigContext(
 		v.appCore.Conf().ID,
@@ -470,19 +474,13 @@ func (v *view) restart(options ...viewOption) {
 
 	restoreStdout()
 
-	userIP, cidr, err := util.GetNetworkInfo()
+	netInfo, err := util.GetNetworkInfo()
 
 	if err != nil {
 		v.log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
-	hostname, err := util.Hostname()
-
-	if err != nil {
-		v.log.Fatal().Err(err).Msg("failed to get hostname for current device")
-	}
-
-	appCore, err := util.CreateNewAppCore(*cidr)
+	appCore, err := core.CreateNewAppCore(netInfo)
 
 	if err != nil {
 		v.log.Fatal().Err(err).Msg("failed to restart app core")
@@ -498,7 +496,7 @@ func (v *view) restart(options ...viewOption) {
 
 	maskStdout()
 
-	v.initialize(*hostname, *userIP, allConfigs, options...)
+	v.initialize(allConfigs, options...)
 
 	if err := v.run(); err != nil {
 		restoreStdout()

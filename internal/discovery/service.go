@@ -57,66 +57,70 @@ func (s *ScannerService) Stop() {
 // private
 // make polling calls to scanner.Scan()
 func (s *ScannerService) pollNetwork() {
-	pollTime := time.Second * 30
+	ticker := time.NewTicker(time.Second * 30)
+	resultChan := make(chan *DiscoveryResult)
+
+	// start first scan
+	// always scan in goroutine to prevent blocking result channel
+	go func() {
+		if err := s.scanner.Scan(resultChan); err != nil {
+			s.cancel()
+		}
+	}()
 
 	for {
 		select {
 		case <-s.ctx.Done():
 			s.log.Info().Msg("Network polling stopped")
+			ticker.Stop()
 			s.cancel()
 			return
-		default:
-			results, err := s.scanner.Scan()
-
-			if err != nil {
-				s.log.Warn().Err(err).Msg("Error polling network")
-			} else {
-				s.log.Info().
-					Fields(map[string]interface{}{"count": len(results)}).
-					Msg("Discovery results")
-
-				s.handleDiscoveryResults(results)
-			}
-
-			time.Sleep(pollTime)
+		case r := <-resultChan:
+			s.handleDiscoveryResult(r)
+		case <-ticker.C:
+			// always scan in goroutine to prevent blocking result channel
+			go func() {
+				if err := s.scanner.Scan(resultChan); err != nil {
+					s.cancel()
+				}
+			}()
 		}
 	}
 }
 
 // handle results found during polling
-func (s *ScannerService) handleDiscoveryResults(results []*DiscoveryResult) {
-	for _, result := range results {
-		deviceType := s.getDeviceType(result)
+func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
+	deviceType := s.getDeviceType(result)
 
-		fields := map[string]interface{}{
-			"id":         result.ID,
-			"hostname":   result.Hostname,
-			"ip":         result.IP,
-			"os":         result.OS,
-			"status":     result.Status,
-			"sshStatus":  s.getSSHStatus(result),
-			"deviceType": deviceType,
-		}
-
-		s.log.Info().Fields(fields).Msg("found network device")
-
-		switch result.Status {
-		case server.StatusOnline:
-			if deviceType == ServerDevice {
-				go s.setServerToOnline(result)
-			} else {
-				s.log.Info().
-					Str("ip", result.IP).
-					Msg("Unknown device detected on network")
-			}
-		case server.StatusOffline:
-			go s.setServerToOffline(result)
-		default:
-			s.log.Info().
-				Str("status", string(result.Status)).
-				Msg("Device detected with unimplemented status action")
-		}
+	fields := map[string]interface{}{
+		"id":         result.ID,
+		"hostname":   result.Hostname,
+		"ip":         result.IP,
+		"os":         result.OS,
+		"status":     result.Status,
+		"sshStatus":  s.getSSHStatus(result),
+		"deviceType": deviceType,
 	}
+
+	s.log.Info().Fields(fields).Msg("found network device")
+
+	switch result.Status {
+	case server.StatusOnline:
+		if deviceType == ServerDevice {
+			go s.setServerToOnline(result)
+		} else {
+			s.log.Info().
+				Str("ip", result.IP).
+				Msg("Unknown device detected on network")
+		}
+	case server.StatusOffline:
+		go s.setServerToOffline(result)
+	default:
+		s.log.Info().
+			Str("status", string(result.Status)).
+			Msg("Device detected with unimplemented status action")
+	}
+
 }
 
 // if port 22 is detected then we can assume its a server

@@ -11,7 +11,7 @@ type DetailScanner interface {
 
 // Scanner interface for scanning a network for devices
 type Scanner interface {
-	Scan() ([]*DiscoveryResult, error)
+	Scan(resultChan chan *DiscoveryResult) error
 	Stop()
 }
 

@@ -99,10 +99,6 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 
 			if ipnet != nil && ipnet.Contains(svrNetIP) {
 				// server IP is within target CIDR block
-				s.log.Debug().
-					Str("serverIP", server.IP).
-					Str("target", target).
-					Msg("network target cidr includes serverIP")
 				result = append(result, server)
 				break
 			}

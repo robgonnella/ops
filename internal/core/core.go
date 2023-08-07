@@ -9,6 +9,7 @@ import (
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/util"
 )
 
 // EventListener represents a registered listener for database events
@@ -30,6 +31,7 @@ type Core struct {
 	ctx                 context.Context
 	cancel              context.CancelFunc
 	conf                *config.Config
+	networkInfo         *util.NetworkInfo
 	configService       config.Service
 	discovery           discovery.Service
 	serverService       server.Service
@@ -43,6 +45,7 @@ type Core struct {
 
 // New returns new core module for given configuration
 func New(
+	networkInfo *util.NetworkInfo,
 	conf *config.Config,
 	configService config.Service,
 	serverService server.Service,
@@ -55,6 +58,7 @@ func New(
 	return &Core{
 		ctx:                 ctx,
 		cancel:              cancel,
+		networkInfo:         networkInfo,
 		conf:                conf,
 		configService:       configService,
 		discovery:           discovery,
@@ -82,6 +86,10 @@ func (c *Core) Stop() error {
 // Conf return the currently loaded configuration
 func (c *Core) Conf() config.Config {
 	return *c.conf
+}
+
+func (c *Core) NetworkInfo() util.NetworkInfo {
+	return *c.networkInfo
 }
 
 // CreateConfig creates a new config in the database

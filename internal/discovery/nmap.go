@@ -55,7 +55,7 @@ func (s *NmapScanner) Stop() {
 }
 
 // scan targets and ports and return network results
-func (s *NmapScanner) Scan() ([]*DiscoveryResult, error) {
+func (s *NmapScanner) Scan(resultChan chan *DiscoveryResult) error {
 	s.log.Info().Msg("Scanning network...")
 
 	result, warnings, err := s.scanner.Run()
@@ -74,10 +74,8 @@ func (s *NmapScanner) Scan() ([]*DiscoveryResult, error) {
 
 	if err != nil {
 		s.log.Error().Err(err).Msg("encountered network scan error")
-		return nil, err
+		return err
 	}
-
-	discoverResults := []*DiscoveryResult{}
 
 	for _, host := range result.Hosts {
 		ports := []Port{}
@@ -122,8 +120,8 @@ func (s *NmapScanner) Scan() ([]*DiscoveryResult, error) {
 			Ports:  ports,
 		}
 
-		discoverResults = append(discoverResults, res)
+		resultChan <- res
 	}
 
-	return discoverResults, nil
+	return nil
 }

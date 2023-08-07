@@ -41,9 +41,12 @@ func TestDiscoveryService(t *testing.T) {
 			Ports:    []discovery.Port{port},
 		}
 
-		results := []*discovery.DiscoveryResult{result}
-
-		mockScanner.EXPECT().Scan().Return(results, nil)
+		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
+			go func() {
+				rchan <- result
+			}()
+			return nil
+		})
 		mockScanner.EXPECT().Stop()
 		mockServerService.EXPECT().MarkServerOffline(result.IP)
 
@@ -79,8 +82,6 @@ func TestDiscoveryService(t *testing.T) {
 			Ports:    []discovery.Port{port},
 		}
 
-		results := []*discovery.DiscoveryResult{result}
-
 		expectedServerCall := &server.Server{
 			ID:        result.ID,
 			Hostname:  result.Hostname,
@@ -90,7 +91,12 @@ func TestDiscoveryService(t *testing.T) {
 			SshStatus: server.SSHDisabled,
 		}
 
-		mockScanner.EXPECT().Scan().Return(results, nil)
+		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
+			go func() {
+				rchan <- result
+			}()
+			return nil
+		})
 		mockScanner.EXPECT().Stop()
 		mockServerService.EXPECT().AddOrUpdateServer(expectedServerCall)
 
@@ -126,8 +132,6 @@ func TestDiscoveryService(t *testing.T) {
 			Ports:    []discovery.Port{port},
 		}
 
-		results := []*discovery.DiscoveryResult{result}
-
 		expectedDetails := &discovery.Details{
 			Hostname: "fancy-hostname",
 			OS:       "fancy-os",
@@ -142,7 +146,12 @@ func TestDiscoveryService(t *testing.T) {
 			SshStatus: server.SSHEnabled,
 		}
 
-		mockScanner.EXPECT().Scan().Return(results, nil)
+		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
+			go func() {
+				rchan <- result
+			}()
+			return nil
+		})
 		mockScanner.EXPECT().Stop()
 		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), result.IP).Return(expectedDetails, nil)
 		mockServerService.EXPECT().AddOrUpdateServer(expectedServerCall)
