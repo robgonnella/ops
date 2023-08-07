@@ -49,31 +49,29 @@ func NewNetScanner(targets []string) (*NetScanner, error) {
 	}, nil
 }
 
-func (s *NetScanner) Scan() ([]*DiscoveryResult, error) {
+func (s *NetScanner) Scan(resultChan chan *DiscoveryResult) error {
 	if s.canceled {
-		return nil, errors.New("network scanner is in a canceled state")
+		return errors.New("network scanner is in a canceled state")
 	}
 
 	s.log.Info().Msg("Scanning network...")
-
-	results := []*DiscoveryResult{}
 
 	wg := &sync.WaitGroup{}
 
 	for _, ip := range s.targets {
 		s.semaphore <- struct{}{} // acquire
 		wg.Add(1)
-		go func(i string, w *sync.WaitGroup, res []*DiscoveryResult) {
+		go func(i string, w *sync.WaitGroup, res chan *DiscoveryResult) {
 			r := s.scanIP(i)
-			results = append(results, r)
+			res <- r
 			<-s.semaphore // release
 			w.Done()
-		}(ip, wg, results)
+		}(ip, wg, resultChan)
 	}
 
 	wg.Wait()
 
-	return results, nil
+	return nil
 }
 
 func (s *NetScanner) Stop() {
@@ -92,15 +90,13 @@ func (s *NetScanner) scanIP(ip string) *DiscoveryResult {
 		Status:   server.StatusOffline,
 	}
 
-	s.log.Info().Str("ip", ip).Msg("Scanning target")
+	s.log.Debug().Str("ip", ip).Msg("Scanning target")
 
 	timeOut := time.Millisecond * 200
 	conn, err := net.DialTimeout("tcp", ip+":22", timeOut)
 
 	if err != nil {
 		r.Ports = []Port{{ID: 22, Status: PortClosed}}
-
-		s.log.Error().Err(err).Msg("network scanning error")
 
 		if _, ok := err.(*net.OpError); ok {
 			if strings.HasSuffix(err.Error(), "connect: connection refused") {

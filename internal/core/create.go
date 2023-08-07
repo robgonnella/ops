@@ -1,13 +1,13 @@
-package util
+package core
 
 import (
 	"errors"
 
 	"github.com/robgonnella/ops/internal/config"
-	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/exception"
 	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/util"
 	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -37,7 +37,7 @@ func getSqliteDbConnection(dbFile string) (*gorm.DB, error) {
 }
 
 // getDefaultConfig creates and returns a default configuration
-func getDefaultConfig(defaultCIDR string) *config.Config {
+func getDefaultConfig(networkInfo *util.NetworkInfo) *config.Config {
 	user := viper.Get("user").(string)
 	identity := viper.Get("default-ssh-identity").(string)
 
@@ -48,12 +48,12 @@ func getDefaultConfig(defaultCIDR string) *config.Config {
 			Identity:  identity,
 			Overrides: []config.SSHOverride{},
 		},
-		Targets: []string{defaultCIDR},
+		Targets: []string{networkInfo.Cidr},
 	}
 }
 
 // CreateNewAppCore creates and returns a new instance of *core.Core
-func CreateNewAppCore(defaultCIDR string) (*core.Core, error) {
+func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 	dbFile := viper.Get("database-file").(string)
 
 	db, err := getSqliteDbConnection(dbFile)
@@ -69,7 +69,7 @@ func CreateNewAppCore(defaultCIDR string) (*core.Core, error) {
 
 	if err != nil {
 		if errors.Is(err, exception.ErrRecordNotFound) {
-			conf = getDefaultConfig(defaultCIDR)
+			conf = getDefaultConfig(networkInfo)
 			conf, err = configService.Create(conf)
 
 			if err != nil {
@@ -97,5 +97,11 @@ func CreateNewAppCore(defaultCIDR string) (*core.Core, error) {
 		serverService,
 	)
 
-	return core.New(conf, configService, serverService, scannerService), nil
+	return New(
+		networkInfo,
+		conf,
+		configService,
+		serverService,
+		scannerService,
+	), nil
 }

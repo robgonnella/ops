@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/util"
 	"github.com/rs/zerolog"
@@ -38,25 +39,23 @@ func NewUI() *UI {
 
 // Launch configures logging, creates a new instance of view and launches
 // our terminal UI application
-func (u *UI) Launch() error {
+func (u *UI) Launch(debug bool) error {
 	log := logger.New()
 
-	userIP, cidr, err := util.GetNetworkInfo()
+	networkInfo, err := util.GetNetworkInfo()
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
-	hostname, err := util.Hostname()
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to get hostname for current device")
-	}
-
-	appCore, err := util.CreateNewAppCore(*cidr)
+	appCore, err := core.CreateNewAppCore(networkInfo)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create app core")
+	}
+
+	if debug {
+		return appCore.Monitor()
 	}
 
 	allConfigs, err := appCore.GetConfigs()
@@ -65,7 +64,7 @@ func (u *UI) Launch() error {
 		log.Fatal().Err(err).Msg("failed to retrieve configs")
 	}
 
-	u.view = newView(*hostname, *userIP, allConfigs, appCore)
+	u.view = newView(allConfigs, appCore)
 
 	level := zerolog.GlobalLevel()
 

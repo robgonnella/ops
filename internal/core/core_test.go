@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"context"
+	"net"
 	"sync"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_server "github.com/robgonnella/ops/internal/mock/server"
 	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,6 +28,14 @@ func TestCore(t *testing.T) {
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
 	mockServerService := mock_server.NewMockService(ctrl)
+
+	networkInfo := &util.NetworkInfo{
+		Hostname:  "hostname",
+		Interface: &net.Interface{},
+		Gateway:   net.ParseIP("0.0.0.0"),
+		UserIP:    net.ParseIP("0.0.0.0"),
+		Cidr:      "0.0.0.0/0",
+	}
 
 	discoveryService := discovery.NewScannerService(
 		mockScanner,
@@ -44,6 +54,7 @@ func TestCore(t *testing.T) {
 	}
 
 	coreService := core.New(
+		networkInfo,
 		&conf,
 		mockConfig,
 		mockServerService,
@@ -218,9 +229,14 @@ func TestCore(t *testing.T) {
 			Do(func([]string) {
 				wg.Done()
 			})
-		mockScanner.EXPECT().Scan().DoAndReturn(func() ([]*discovery.DiscoveryResult, error) {
+		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
 			defer wg.Done()
-			return discoveryResults, nil
+			go func() {
+				for _, r := range discoveryResults {
+					rchan <- r
+				}
+			}()
+			return nil
 		})
 		mockDetailsScanner.EXPECT().
 			GetServerDetails(gomock.Any(), "ip").

@@ -14,6 +14,7 @@ type CommandProps struct {
 
 // Root builds and returns our root command
 func Root(props *CommandProps) *cobra.Command {
+	var debug bool
 	var verbose bool
 	var silent bool
 
@@ -26,7 +27,7 @@ func Root(props *CommandProps) *cobra.Command {
 			// set logging verbosity for all loggers
 			level := zerolog.InfoLevel
 
-			if verbose {
+			if verbose || debug {
 				level = zerolog.DebugLevel
 			}
 
@@ -39,11 +40,12 @@ func Root(props *CommandProps) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return props.UI.Launch()
+			return props.UI.Launch(debug)
 		},
 	}
 
 	// Persistent flags available to all commands
+	cmd.PersistentFlags().BoolVar(&debug, "debug", false, "run in terminal log mode - no ui")
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Show debug logs")
 	cmd.PersistentFlags().BoolVar(&silent, "silent", false, "disables all logging")
 
