@@ -24,29 +24,10 @@ type NetScanner struct {
 	log       logger.Logger
 }
 
-func NewNetScanner(targets []string) *NetScanner {
-	return &NetScanner{
-		canceled:  false,
-		targets:   targets,
-		semaphore: make(chan struct{}, 1000),
-		log:       logger.New(),
-	}
-}
-
-func (s *NetScanner) Scan() ([]*DiscoveryResult, error) {
-	if s.canceled {
-		return nil, errors.New("network scanner is in a canceled state")
-	}
-
-	s.log.Info().Msg("Scanning network...")
-
-	results := []*DiscoveryResult{}
-
+func NewNetScanner(targets []string) (*NetScanner, error) {
 	ipList := []string{}
 
-	wg := &sync.WaitGroup{}
-
-	for _, t := range s.targets {
+	for _, t := range targets {
 		if cidrSuffix.MatchString(t) {
 			ips, err := mapcidr.IPAddresses(t)
 
@@ -60,7 +41,26 @@ func (s *NetScanner) Scan() ([]*DiscoveryResult, error) {
 		}
 	}
 
-	for _, ip := range ipList {
+	return &NetScanner{
+		canceled:  false,
+		targets:   ipList,
+		semaphore: make(chan struct{}, 1000),
+		log:       logger.New(),
+	}, nil
+}
+
+func (s *NetScanner) Scan() ([]*DiscoveryResult, error) {
+	if s.canceled {
+		return nil, errors.New("network scanner is in a canceled state")
+	}
+
+	s.log.Info().Msg("Scanning network...")
+
+	results := []*DiscoveryResult{}
+
+	wg := &sync.WaitGroup{}
+
+	for _, ip := range s.targets {
 		s.semaphore <- struct{}{} // acquire
 		wg.Add(1)
 		go func(i string, w *sync.WaitGroup, res []*DiscoveryResult) {

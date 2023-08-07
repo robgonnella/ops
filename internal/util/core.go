@@ -83,7 +83,11 @@ func CreateNewAppCore(defaultCIDR string) (*core.Core, error) {
 	serverRepo := server.NewSqliteRepo(db)
 	serverService := server.NewService(*conf, serverRepo)
 
-	netScanner := discovery.NewNetScanner(conf.Targets)
+	netScanner, err := discovery.NewNetScanner(conf.Targets)
+
+	if err != nil {
+		return nil, err
+	}
 
 	detailScanner := discovery.NewAnsibleIpScanner(*conf)
 
