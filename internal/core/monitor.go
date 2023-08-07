@@ -43,6 +43,7 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 	fields := map[string]interface{}{
 		"type":     evt.Type,
 		"id":       payload.ID,
+		"mac":      payload.MAC,
 		"hostname": payload.Hostname,
 		"os":       payload.OS,
 		"ip":       payload.IP,

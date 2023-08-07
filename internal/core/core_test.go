@@ -26,6 +26,7 @@ func TestCore(t *testing.T) {
 
 	mockScanner := mock_discovery.NewMockScanner(ctrl)
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
+	mockPacketScanner := mock_discovery.NewMockPacketScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
 	mockServerService := mock_server.NewMockService(ctrl)
 
@@ -40,6 +41,7 @@ func TestCore(t *testing.T) {
 	discoveryService := discovery.NewScannerService(
 		mockScanner,
 		mockDetailsScanner,
+		mockPacketScanner,
 		mockServerService,
 	)
 
@@ -223,6 +225,7 @@ func TestCore(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(5)
 
+		mockPacketScanner.EXPECT().ListenForPackets(gomock.Any())
 		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
 		mockServerService.EXPECT().
 			GetAllServersInNetworkTargets(conf.Targets).

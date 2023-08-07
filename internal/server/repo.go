@@ -45,9 +45,9 @@ func (r *SqliteRepo) GetServerByID(serverID string) (*Server, error) {
 
 // GetServerByIP returns a server from the SqliteRepo based on current ip
 func (r *SqliteRepo) GetServerByIP(ip string) (*Server, error) {
-	server := Server{IP: ip}
+	server := Server{}
 
-	if result := r.db.First(&server); result.Error != nil {
+	if result := r.db.First(&server, "ip = ?", ip); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, exception.ErrRecordNotFound
 		}
@@ -86,7 +86,7 @@ func (r *SqliteRepo) UpdateServer(server *Server) (*Server, error) {
 		return nil, errors.New("server id cannot be empty")
 	}
 
-	if result := r.db.Save(server); result.Error != nil {
+	if result := r.db.Updates(server); result.Error != nil {
 		return nil, result.Error
 	}
 

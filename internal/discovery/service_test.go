@@ -19,11 +19,13 @@ func TestDiscoveryService(t *testing.T) {
 	t.Run("monitors network for offline servers", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockPacketScanner := mock_discovery.NewMockPacketScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
+			mockPacketScanner,
 			mockServerService,
 		)
 
@@ -41,6 +43,7 @@ func TestDiscoveryService(t *testing.T) {
 			Ports:    []discovery.Port{port},
 		}
 
+		mockPacketScanner.EXPECT().ListenForPackets(gomock.Any())
 		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
 			go func() {
 				rchan <- result
@@ -60,11 +63,13 @@ func TestDiscoveryService(t *testing.T) {
 	t.Run("monitors network for online servers", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockPacketScanner := mock_discovery.NewMockPacketScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
+			mockPacketScanner,
 			mockServerService,
 		)
 
@@ -91,6 +96,7 @@ func TestDiscoveryService(t *testing.T) {
 			SshStatus: server.SSHDisabled,
 		}
 
+		mockPacketScanner.EXPECT().ListenForPackets(gomock.Any())
 		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
 			go func() {
 				rchan <- result
@@ -110,11 +116,13 @@ func TestDiscoveryService(t *testing.T) {
 	t.Run("requests extra details when ssh is enabled", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockPacketScanner := mock_discovery.NewMockPacketScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
+			mockPacketScanner,
 			mockServerService,
 		)
 
@@ -146,6 +154,7 @@ func TestDiscoveryService(t *testing.T) {
 			SshStatus: server.SSHEnabled,
 		}
 
+		mockPacketScanner.EXPECT().ListenForPackets(gomock.Any())
 		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
 			go func() {
 				rchan <- result

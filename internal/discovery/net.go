@@ -13,6 +13,7 @@ import (
 	"github.com/projectdiscovery/mapcidr"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/util"
 )
 
 var cidrSuffix = regexp.MustCompile(`\/\d{2}$`)
@@ -24,7 +25,7 @@ type NetScanner struct {
 	log       logger.Logger
 }
 
-func NewNetScanner(targets []string) (*NetScanner, error) {
+func NewNetScanner(networkInfo *util.NetworkInfo, targets []string) (*NetScanner, error) {
 	ipList := []string{}
 
 	for _, t := range targets {

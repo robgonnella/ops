@@ -24,7 +24,7 @@ func NewEventTable() *EventTable {
 		"EVENT TYPE",
 		"HOSTNAME",
 		"IP",
-		"ID",
+		"MAC",
 		"OS",
 		"SSH",
 		"STATUS",
@@ -53,13 +53,13 @@ func (t *EventTable) UpdateTable(evt *event.Event) {
 	status := string(payload.Status)
 	ssh := string(payload.SshStatus)
 	hostname := payload.Hostname
-	id := payload.ID
+	mac := payload.MAC
 	ip := payload.IP
 	os := payload.OS
 
 	countStr := strconv.Itoa(int(t.count))
 
-	row := []string{countStr, evtType, hostname, ip, id, os, ssh, status}
+	row := []string{countStr, evtType, hostname, ip, mac, os, ssh, status}
 	rowIdx := t.table.GetRowCount()
 
 	for col, text := range row {

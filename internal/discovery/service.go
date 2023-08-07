@@ -14,6 +14,7 @@ type ScannerService struct {
 	cancel        context.CancelFunc
 	scanner       Scanner
 	detailScanner DetailScanner
+	packetScanner PacketScanner
 	serverService server.Service
 	log           logger.Logger
 }
@@ -22,6 +23,7 @@ type ScannerService struct {
 func NewScannerService(
 	scanner Scanner,
 	detailScanner DetailScanner,
+	packetScanner PacketScanner,
 	serverService server.Service,
 ) *ScannerService {
 	log := logger.New()
@@ -34,6 +36,7 @@ func NewScannerService(
 		cancel:        cancel,
 		scanner:       scanner,
 		detailScanner: detailScanner,
+		packetScanner: packetScanner,
 		serverService: serverService,
 		log:           log,
 	}
@@ -59,6 +62,10 @@ func (s *ScannerService) Stop() {
 func (s *ScannerService) pollNetwork() {
 	ticker := time.NewTicker(time.Second * 30)
 	resultChan := make(chan *DiscoveryResult)
+	packetResults := make(chan *server.Server)
+
+	// start listening for packet updates
+	go s.packetScanner.ListenForPackets(packetResults)
 
 	// start first scan
 	// always scan in goroutine to prevent blocking result channel
@@ -77,6 +84,13 @@ func (s *ScannerService) pollNetwork() {
 			return
 		case r := <-resultChan:
 			s.handleDiscoveryResult(r)
+		case r := <-packetResults:
+			if err := s.serverService.UpdateMACByIP(r); err != nil {
+				s.log.Error().
+					Err(err).
+					Interface("req", r).
+					Msg("failed to update server")
+			}
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
 			go func() {

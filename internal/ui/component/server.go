@@ -18,7 +18,7 @@ type ServerTable struct {
 
 // NewServerTable returns a new instance of ServerTable
 func NewServerTable(hostHostname, hostIP string, OnSSH func(ip string)) *ServerTable {
-	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "SSH", "STATUS"}
+	columnHeaders := []string{"HOSTNAME", "IP", "MAC", "OS", "SSH", "STATUS"}
 
 	table := createTable("servers", columnHeaders)
 
@@ -54,7 +54,7 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 		status := string(svr.Status)
 		ssh := string(svr.SshStatus)
 		hostname := svr.Hostname
-		id := svr.ID
+		mac := svr.MAC
 		ip := svr.IP
 		os := svr.OS
 		you := false
@@ -64,7 +64,7 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 			you = true
 		}
 
-		row := []string{hostname, ip, id, os, ssh, status}
+		row := []string{hostname, ip, mac, os, ssh, status}
 
 		for col, text := range row {
 			if col == 0 && you {

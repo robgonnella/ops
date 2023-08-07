@@ -245,3 +245,17 @@ func (mr *MockServiceMockRecorder) StreamEvents(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StreamEvents", reflect.TypeOf((*MockService)(nil).StreamEvents), arg0)
 }
+
+// UpdateMACByIP mocks base method.
+func (m *MockService) UpdateMACByIP(arg0 *server.Server) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMACByIP", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateMACByIP indicates an expected call of UpdateMACByIP.
+func (mr *MockServiceMockRecorder) UpdateMACByIP(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMACByIP", reflect.TypeOf((*MockService)(nil).UpdateMACByIP), arg0)
+}

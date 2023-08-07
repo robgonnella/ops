@@ -83,7 +83,7 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 	serverRepo := server.NewSqliteRepo(db)
 	serverService := server.NewService(*conf, serverRepo)
 
-	netScanner, err := discovery.NewNetScanner(conf.Targets)
+	netScanner, err := discovery.NewNetScanner(networkInfo, conf.Targets)
 
 	if err != nil {
 		return nil, err
@@ -91,9 +91,16 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 
 	detailScanner := discovery.NewAnsibleIpScanner(*conf)
 
+	packetScanner, err := discovery.NewPCapScanner(conf.Targets, networkInfo)
+
+	if err != nil {
+		return nil, err
+	}
+
 	scannerService := discovery.NewScannerService(
 		netScanner,
 		detailScanner,
+		packetScanner,
 		serverService,
 	)
 

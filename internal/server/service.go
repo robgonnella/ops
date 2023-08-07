@@ -5,7 +5,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/imdario/mergo"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/exception"
@@ -82,10 +81,6 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 			if err != nil {
 				// non CIDR target just check if target matches IP
 				if server.IP == target {
-					s.log.Debug().
-						Str("serverIP", server.IP).
-						Str("target", target).
-						Msg("serverIP matches network target")
 					result = append(result, server)
 					break
 				}
@@ -105,12 +100,14 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 		}
 	}
 
+	// s.log.Error().Interface("result", result).Msg("returning all servers in target")
+
 	return result, nil
 }
 
 // AddOrUpdateServer adds or updates a server
 func (s *ServerService) AddOrUpdateServer(req *Server) error {
-	currentServer, err := s.repo.GetServerByID(req.ID)
+	_, err := s.repo.GetServerByID(req.ID)
 
 	if errors.Is(err, exception.ErrRecordNotFound) {
 		// handle add case
@@ -132,8 +129,25 @@ func (s *ServerService) AddOrUpdateServer(req *Server) error {
 
 	// handle update case
 
-	mergo.Merge(req, currentServer)
+	updatedServer, err := s.repo.UpdateServer(req)
 
+	if err != nil {
+		return err
+	}
+
+	s.sendServerUpdateEvent(updatedServer)
+
+	return nil
+}
+
+func (s *ServerService) UpdateMACByIP(req *Server) error {
+	currentServer, err := s.repo.GetServerByIP(req.IP)
+
+	if err != nil {
+		return err
+	}
+
+	req.ID = currentServer.ID
 	updatedServer, err := s.repo.UpdateServer(req)
 
 	if err != nil {
