@@ -13,16 +13,16 @@ managing kubernetes clusters via a terminal ui application.
 
 ## Runtime Dependencies
 
-Ops has two external runtime dependencies, namely [nmap] and [ansible].
+Ops has one external runtime dependencies, [ansible].
 
 - mac
 ```bash
-brew install nmap ansible
+brew install ansible
 ```
 
 - debian
 ```bash
-sudo apt update && sudo apt install -y nmap ansible
+sudo apt update && sudo apt install -y ansible
 ```
 
 ## Build Dependencies
@@ -54,7 +54,6 @@ PATH="${GOPATH}/bin:$PATH"
   - dependencies
     - golang
     - ansible
-    - nmap
     - git
 
 ```bash
@@ -66,7 +65,6 @@ go install github.com/robgonnella/ops@latest
     - golang
     - make
     - ansible
-    - nmap
     - git
 
 ```bash
@@ -77,7 +75,6 @@ make install
 
 - use pre-built binaries: https://github.com/robgonnella/ops/releases
   - dependencies
-    - nmap
     - ansible
 
 ## Usage
@@ -129,14 +126,11 @@ ops <cmd> --help
 
 - [tview] is used to build the frontend. This is a wonderful open source
   terminal ui library provided by [rivo]!
-- [nmap] is used on the backend to perform arp scanning of networks to find
-  and track devices.
 - [ansible] is also used on the backend to gather additional details about a
   device where ssh is granted
 
 [rivo]: https://github.com/rivo
 [tview]: https://github.com/rivo/tview
 [ansible]: https://docs.ansible.com/
-[nmap]: https://nmap.org/
 [k9s]: https://github.com/derailed/k9s
 [derailed]: https://github.com/derailed

@@ -8,12 +8,12 @@
 
 - mac
 ```bash
-brew install make go nmap ansible git
+brew install make go ansible git
 ```
 
 - debian
 ```bash
-sudo apt update && sudo apt install -y make golang nmap ansible git
+sudo apt update && sudo apt install -y make golang ansible git
 ```
 
 When building from source you may want to add the following lines to one of your
