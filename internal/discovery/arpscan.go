@@ -121,7 +121,7 @@ func (s *ARPScanner) handleARPLayer(arp *layers.ARP) {
 	}
 
 	if bytes.Equal([]byte(s.networkInfo.Interface.HardwareAddr), arp.SourceHwAddress) {
-		// This is a packet I sent.
+		// This is a packet we sent
 		return
 	}
 
@@ -141,8 +141,6 @@ func (s *ARPScanner) handleARPLayer(arp *layers.ARP) {
 }
 
 func (s *ARPScanner) handleNonARPPacket(packet gopacket.Packet) {
-	// Find the packets we care about, and print out logging
-	// information about them.  All others are ignored.
 	net := packet.NetworkLayer()
 
 	if net == nil {
@@ -165,12 +163,7 @@ func (s *ARPScanner) handleNonARPPacket(packet gopacket.Packet) {
 		return
 	}
 
-	tcp, ok := tcpLayer.(*layers.TCP)
-
-	if !ok {
-		// this should never happen.
-		return
-	}
+	tcp := tcpLayer.(*layers.TCP)
 
 	if tcp.DstPort != 54321 {
 		return
@@ -203,7 +196,6 @@ func (s *ARPScanner) handleNonARPPacket(packet gopacket.Packet) {
 }
 
 func (s *ARPScanner) writeARP() error {
-	// Set up all the layers' fields we can.
 	eth := layers.Ethernet{
 		SrcMAC:       s.networkInfo.Interface.HardwareAddr,
 		DstMAC:       net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
@@ -221,7 +213,6 @@ func (s *ARPScanner) writeARP() error {
 		DstHwAddress:      []byte{0, 0, 0, 0, 0, 0},
 	}
 
-	// Set up buffer and options for serialization.
 	buf := gopacket.NewSerializeBuffer()
 
 	opts := gopacket.SerializeOptions{
@@ -229,7 +220,6 @@ func (s *ARPScanner) writeARP() error {
 		ComputeChecksums: true,
 	}
 
-	// Send one packet for every address.
 	for _, ip := range s.targets {
 		arp.DstProtAddress = []byte(net.ParseIP(ip).To4())
 
@@ -246,7 +236,6 @@ func (s *ARPScanner) writeARP() error {
 }
 
 func (s *ARPScanner) writeSyn(ip net.IP, mac net.HardwareAddr) {
-	// Construct all the network layers we need.
 	eth := layers.Ethernet{
 		SrcMAC:       s.networkInfo.Interface.HardwareAddr,
 		DstMAC:       mac,
