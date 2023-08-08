@@ -128,6 +128,11 @@ func (s *ARPScanner) handleARPLayer(arp *layers.ARP) {
 	ip := net.IP(arp.SourceProtAddress)
 	mac := net.HardwareAddr(arp.SourceHwAddress)
 
+	if !util.SliceIncludes(s.targets, ip.String()) {
+		// not an arp request we care about
+		return
+	}
+
 	s.mux.Lock()
 	s.arpMap[ip.String()] = mac
 	s.mux.Unlock()
