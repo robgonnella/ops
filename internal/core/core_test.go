@@ -28,6 +28,7 @@ func TestCore(t *testing.T) {
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
 	mockServerService := mock_server.NewMockService(ctrl)
+	resultChan := make(chan *discovery.DiscoveryResult)
 
 	networkInfo := &util.NetworkInfo{
 		Hostname:  "hostname",
@@ -41,6 +42,7 @@ func TestCore(t *testing.T) {
 		mockScanner,
 		mockDetailsScanner,
 		mockServerService,
+		resultChan,
 	)
 
 	conf := config.Config{
@@ -229,11 +231,11 @@ func TestCore(t *testing.T) {
 			Do(func([]string) {
 				wg.Done()
 			})
-		mockScanner.EXPECT().Scan(gomock.Any()).DoAndReturn(func(rchan chan *discovery.DiscoveryResult) error {
+		mockScanner.EXPECT().Scan().DoAndReturn(func() error {
 			defer wg.Done()
 			go func() {
 				for _, r := range discoveryResults {
-					rchan <- r
+					resultChan <- r
 				}
 			}()
 			return nil

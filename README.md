@@ -13,16 +13,16 @@ managing kubernetes clusters via a terminal ui application.
 
 ## Runtime Dependencies
 
-Ops has one external runtime dependencies, [ansible].
+Ops has some external runtime dependencies: libpcap, [ansible].
 
 - mac
 ```bash
-brew install ansible
+brew install ansible libpcap
 ```
 
 - debian
 ```bash
-sudo apt update && sudo apt install -y ansible
+sudo apt update && sudo apt install -y ansible libpcap-dev
 ```
 
 ## Build Dependencies
@@ -54,6 +54,7 @@ PATH="${GOPATH}/bin:$PATH"
   - dependencies
     - golang
     - ansible
+    - libpcap
     - git
 
 ```bash
@@ -65,6 +66,7 @@ go install github.com/robgonnella/ops@latest
     - golang
     - make
     - ansible
+    - libpcap
     - git
 
 ```bash
@@ -76,6 +78,7 @@ make install
 - use pre-built binaries: https://github.com/robgonnella/ops/releases
   - dependencies
     - ansible
+    - libpcap
 
 ## Usage
 

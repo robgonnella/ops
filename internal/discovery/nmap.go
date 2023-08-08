@@ -13,14 +13,15 @@ import (
 
 // NmapScanner is an implementation of the Scanner interface
 type NmapScanner struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	scanner *nmap.Scanner
-	log     logger.Logger
+	ctx        context.Context
+	cancel     context.CancelFunc
+	scanner    *nmap.Scanner
+	resultChan chan *DiscoveryResult
+	log        logger.Logger
 }
 
 // NewNmapScanner returns a new instance of NmapScanner
-func NewNmapScanner(targets []string) (*NmapScanner, error) {
+func NewNmapScanner(targets []string, resultChan chan *DiscoveryResult) (*NmapScanner, error) {
 	log := logger.New()
 
 	// Use a cancelable context so we can properly cleanup when needed
@@ -41,10 +42,11 @@ func NewNmapScanner(targets []string) (*NmapScanner, error) {
 	}
 
 	return &NmapScanner{
-		ctx:     ctxWithCancel,
-		cancel:  cancel,
-		log:     log,
-		scanner: scanner,
+		ctx:        ctxWithCancel,
+		cancel:     cancel,
+		log:        log,
+		scanner:    scanner,
+		resultChan: resultChan,
 	}, nil
 }
 
@@ -55,7 +57,7 @@ func (s *NmapScanner) Stop() {
 }
 
 // scan targets and ports and return network results
-func (s *NmapScanner) Scan(resultChan chan *DiscoveryResult) error {
+func (s *NmapScanner) Scan() error {
 	s.log.Info().Msg("Scanning network...")
 
 	result, warnings, err := s.scanner.Run()
@@ -120,7 +122,7 @@ func (s *NmapScanner) Scan(resultChan chan *DiscoveryResult) error {
 			Ports:  ports,
 		}
 
-		resultChan <- res
+		s.resultChan <- res
 	}
 
 	return nil

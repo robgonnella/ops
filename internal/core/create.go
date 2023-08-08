@@ -83,7 +83,13 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 	serverRepo := server.NewSqliteRepo(db)
 	serverService := server.NewService(*conf, serverRepo)
 
-	netScanner, err := discovery.NewNetScanner(conf.Targets)
+	resultChan := make(chan *discovery.DiscoveryResult)
+
+	netScanner, err := discovery.NewARPScanner(
+		networkInfo,
+		conf.Targets,
+		resultChan,
+	)
 
 	if err != nil {
 		return nil, err
@@ -95,6 +101,7 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 		netScanner,
 		detailScanner,
 		serverService,
+		resultChan,
 	)
 
 	return New(

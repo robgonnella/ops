@@ -19,8 +19,8 @@ jobs:
         with:
           go-version: '1.19'
 
-      - name: Install make
-        run: sudo apt update && sudo apt install -y make
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y make libpcap-dev
 
       - name: Build
         run: make

@@ -1,6 +1,8 @@
 package discovery
 
-import "context"
+import (
+	"context"
+)
 
 //go:generate mockgen -destination=../mock/discovery/mock_discovery.go -package=mock_discovery . DetailScanner,Scanner
 
@@ -11,7 +13,7 @@ type DetailScanner interface {
 
 // Scanner interface for scanning a network for devices
 type Scanner interface {
-	Scan(resultChan chan *DiscoveryResult) error
+	Scan() error
 	Stop()
 }
 
