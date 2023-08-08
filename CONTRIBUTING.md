@@ -70,10 +70,17 @@ make dev
 ## Run
 
 ```bash
-./build/ops
+sudo ./build/ops
 
 # run development build
-./build/ops-dev
+sudo ./build/ops-dev
+
+# or run using go run
+sudo go run main.go
+
+# you can also add --debug to any of the run commands above to run a
+# non-UI version of the app that just prints logs to the terminal
+sudo go run main.go --debug
 ```
 
 - clear database file and log file

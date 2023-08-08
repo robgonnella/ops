@@ -89,7 +89,8 @@ will fail to start.
 - start application
 
 ```bash
-ops
+# Due to the usage of libpcap, ops must be run with root privileges.
+sudo ops
 ```
 
 - print version and other details
