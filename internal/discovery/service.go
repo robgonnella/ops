@@ -15,6 +15,7 @@ type ScannerService struct {
 	scanner       Scanner
 	detailScanner DetailScanner
 	serverService server.Service
+	resultChan    chan *DiscoveryResult
 	log           logger.Logger
 }
 
@@ -23,6 +24,7 @@ func NewScannerService(
 	scanner Scanner,
 	detailScanner DetailScanner,
 	serverService server.Service,
+	resultChan chan *DiscoveryResult,
 ) *ScannerService {
 	log := logger.New()
 
@@ -35,6 +37,7 @@ func NewScannerService(
 		scanner:       scanner,
 		detailScanner: detailScanner,
 		serverService: serverService,
+		resultChan:    resultChan,
 		log:           log,
 	}
 }
@@ -58,12 +61,11 @@ func (s *ScannerService) Stop() {
 // make polling calls to scanner.Scan()
 func (s *ScannerService) pollNetwork() {
 	ticker := time.NewTicker(time.Second * 30)
-	resultChan := make(chan *DiscoveryResult)
 
 	// start first scan
 	// always scan in goroutine to prevent blocking result channel
 	go func() {
-		if err := s.scanner.Scan(resultChan); err != nil {
+		if err := s.scanner.Scan(); err != nil {
 			s.cancel()
 		}
 	}()
@@ -75,12 +77,12 @@ func (s *ScannerService) pollNetwork() {
 			ticker.Stop()
 			s.cancel()
 			return
-		case r := <-resultChan:
+		case r := <-s.resultChan:
 			s.handleDiscoveryResult(r)
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
 			go func() {
-				if err := s.scanner.Scan(resultChan); err != nil {
+				if err := s.scanner.Scan(); err != nil {
 					s.cancel()
 				}
 			}()

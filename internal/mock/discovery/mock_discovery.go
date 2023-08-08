@@ -74,17 +74,17 @@ func (m *MockScanner) EXPECT() *MockScannerMockRecorder {
 }
 
 // Scan mocks base method.
-func (m *MockScanner) Scan(arg0 chan *discovery.DiscoveryResult) error {
+func (m *MockScanner) Scan() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Scan", arg0)
+	ret := m.ctrl.Call(m, "Scan")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Scan indicates an expected call of Scan.
-func (mr *MockScannerMockRecorder) Scan(arg0 interface{}) *gomock.Call {
+func (mr *MockScannerMockRecorder) Scan() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockScanner)(nil).Scan), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockScanner)(nil).Scan))
 }
 
 // Stop mocks base method.
