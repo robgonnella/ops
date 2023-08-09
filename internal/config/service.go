@@ -20,6 +20,10 @@ func (s *ConfigService) GetAll() ([]*Config, error) {
 	return s.repo.GetAll()
 }
 
+func (s *ConfigService) GetByCIDR(cidr string) (*Config, error) {
+	return s.repo.GetByCIDR(cidr)
+}
+
 // Create creates a new config
 func (s *ConfigService) Create(conf *Config) (*Config, error) {
 	return s.repo.Create(conf)
@@ -33,14 +37,4 @@ func (s *ConfigService) Update(conf *Config) (*Config, error) {
 // Delete deletes a config
 func (s *ConfigService) Delete(id int) error {
 	return s.repo.Delete(id)
-}
-
-// SetLasLoaded sets the "loaded" field for a config to current timestamp
-func (s *ConfigService) SetLastLoaded(id int) error {
-	return s.repo.SetLastLoaded(id)
-}
-
-// LastLoaded retrieves the most recently loaded config
-func (s *ConfigService) LastLoaded() (*Config, error) {
-	return s.repo.LastLoaded()
 }

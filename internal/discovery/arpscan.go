@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"net"
-	"regexp"
 	"sync"
 
 	"github.com/google/gopacket"
@@ -16,8 +15,6 @@ import (
 	"github.com/robgonnella/ops/internal/util"
 	"github.com/rs/zerolog/log"
 )
-
-var cidrSuffix = regexp.MustCompile(`\/\d{2}$`)
 
 type ARPScanner struct {
 	ctx          context.Context
@@ -34,24 +31,17 @@ type ARPScanner struct {
 
 func NewARPScanner(
 	networkInfo *util.NetworkInfo,
-	targets []string,
 	resultChan chan *DiscoveryResult,
 ) (*ARPScanner, error) {
 	ipList := []string{}
 
-	for _, t := range targets {
-		if cidrSuffix.MatchString(t) {
-			ips, err := mapcidr.IPAddresses(t)
+	ips, err := mapcidr.IPAddresses(networkInfo.Cidr)
 
-			if err != nil {
-				return nil, err
-			}
-
-			ipList = append(ipList, ips...)
-		} else {
-			ipList = append(ipList, t)
-		}
+	if err != nil {
+		return nil, err
 	}
+
+	ipList = append(ipList, ips...)
 
 	// Open up a pcap handle for packet reads/writes.
 	handle, err := pcap.OpenLive(

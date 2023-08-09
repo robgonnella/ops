@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/robgonnella/ops/internal/exception"
 	"gorm.io/datatypes"
@@ -35,10 +34,6 @@ func (r *SqliteRepo) Get(id int) (*Config, error) {
 			return nil, exception.ErrRecordNotFound
 		}
 
-		return nil, result.Error
-	}
-
-	if result := r.db.Save(&confModel); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -122,24 +117,11 @@ func (r *SqliteRepo) Delete(id int) error {
 	return r.db.Delete(&ConfigModel{ID: id}).Error
 }
 
-// SetLastLoaded updates a configs "loaded" field to the current timestamp
-func (r *SqliteRepo) SetLastLoaded(id int) error {
-	confModel := ConfigModel{ID: id}
-
-	if result := r.db.First(&confModel); result.Error != nil {
-		return result.Error
-	}
-
-	confModel.Loaded = time.Now()
-
-	return r.db.Save(&confModel).Error
-}
-
 // LastLoaded returns the most recently loaded config
-func (r *SqliteRepo) LastLoaded() (*Config, error) {
+func (r *SqliteRepo) GetByCIDR(cidr string) (*Config, error) {
 	confModel := ConfigModel{}
 
-	if result := r.db.Order("loaded desc").First(&confModel); result.Error != nil {
+	if result := r.db.First(&confModel, "cidr = ?", cidr); result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, exception.ErrRecordNotFound
 		}
@@ -158,12 +140,6 @@ func modelToConfig(model *ConfigModel) (*Config, error) {
 		return nil, err
 	}
 
-	targets := []string{}
-
-	if err := json.Unmarshal([]byte(model.Targets.String()), &targets); err != nil {
-		return nil, err
-	}
-
 	return &Config{
 		ID:   model.ID,
 		Name: model.Name,
@@ -172,19 +148,12 @@ func modelToConfig(model *ConfigModel) (*Config, error) {
 			Identity:  model.SSH.Identity,
 			Overrides: overrides,
 		},
-		Targets: targets,
-		Loaded:  model.Loaded,
+		CIDR: model.CIDR,
 	}, nil
 }
 
 func configToModel(conf *Config) (*ConfigModel, error) {
 	overridesBytes, err := json.Marshal(conf.SSH.Overrides)
-
-	if err != nil {
-		return nil, err
-	}
-
-	targetsBytes, err := json.Marshal(conf.Targets)
 
 	if err != nil {
 		return nil, err
@@ -198,6 +167,6 @@ func configToModel(conf *Config) (*ConfigModel, error) {
 			Identity:  conf.SSH.Identity,
 			Overrides: datatypes.JSON(overridesBytes),
 		},
-		Targets: datatypes.JSON(targetsBytes),
+		CIDR: conf.CIDR,
 	}, nil
 }

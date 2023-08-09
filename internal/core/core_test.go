@@ -52,7 +52,7 @@ func TestCore(t *testing.T) {
 			User:     "user",
 			Identity: "identity",
 		},
-		Targets: []string{"172.100.1.1/24"},
+		CIDR: "172.100.1.1/24",
 	}
 
 	coreService := core.New(
@@ -79,13 +79,11 @@ func TestCore(t *testing.T) {
 				User:     "new-user",
 				Identity: "new-identity",
 			},
-			Targets: []string{"new-target"},
+			CIDR: "192.111.1.1/28",
 		}
 
 		mockConfig.EXPECT().Update(&newConf).Return(&newConf, nil)
 		mockConfig.EXPECT().Update(&conf).Return(&conf, nil)
-		mockConfig.EXPECT().SetLastLoaded(newConf.ID)
-		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
 		err := coreService.UpdateConfig(newConf)
 
@@ -103,13 +101,11 @@ func TestCore(t *testing.T) {
 				User:     "other-user",
 				Identity: "other-identity",
 			},
-			Targets: []string{"other target"},
+			CIDR: "172.22.2.2/32",
 		}
 
 		mockConfig.EXPECT().Get(anotherConf.ID).Return(&anotherConf, nil)
 		mockConfig.EXPECT().Get(conf.ID).Return(&conf, nil)
-		mockConfig.EXPECT().SetLastLoaded(anotherConf.ID)
-		mockConfig.EXPECT().SetLastLoaded(conf.ID)
 
 		err := coreService.SetConfig(anotherConf.ID)
 
@@ -124,7 +120,7 @@ func TestCore(t *testing.T) {
 				User:     "new-user",
 				Identity: "new-identity",
 			},
-			Targets: []string{"new-target"},
+			CIDR: "172.22.2.2/32",
 		}
 
 		mockConfig.EXPECT().Create(&newConf).Return(&newConf, nil)
@@ -151,7 +147,7 @@ func TestCore(t *testing.T) {
 				User:     "other-user",
 				Identity: "other-identity",
 			},
-			Targets: []string{"other target"},
+			CIDR: "172.22.2.3/32",
 		}
 
 		expectedConfs := []*config.Config{&conf, &anotherConf}
@@ -227,8 +223,8 @@ func TestCore(t *testing.T) {
 
 		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
 		mockServerService.EXPECT().
-			GetAllServersInNetworkTargets(conf.Targets).
-			Do(func([]string) {
+			GetAllServersInNetwork(conf.CIDR).
+			Do(func(string) {
 				wg.Done()
 			})
 		mockScanner.EXPECT().Scan().DoAndReturn(func() error {

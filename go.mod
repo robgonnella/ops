@@ -7,6 +7,7 @@ require (
 	github.com/gdamore/tcell/v2 v2.6.0
 	github.com/golang/mock v1.6.0
 	github.com/google/gopacket v1.1.19
+	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/jackpal/gateway v1.0.10
 	github.com/projectdiscovery/mapcidr v1.1.2
 	github.com/rivo/tview v0.0.0-20230621164836-6cc0565babaf

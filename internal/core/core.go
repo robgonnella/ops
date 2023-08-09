@@ -111,10 +111,6 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 		return err
 	}
 
-	if err := c.configService.SetLastLoaded(updated.ID); err != nil {
-		return err
-	}
-
 	c.conf = updated
 
 	return nil
@@ -125,10 +121,6 @@ func (c *Core) SetConfig(id int) error {
 	conf, err := c.configService.Get(id)
 
 	if err != nil {
-		return err
-	}
-
-	if err := c.configService.SetLastLoaded(conf.ID); err != nil {
 		return err
 	}
 
