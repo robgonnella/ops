@@ -108,6 +108,12 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 		resultChan,
 	)
 
+	if servers, err := serverService.GetAllServersInNetwork(networkInfo.Cidr); err == nil && len(servers) > 0 {
+		for _, s := range servers {
+			serverService.MarkServerOffline(s.IP)
+		}
+	}
+
 	return New(
 		networkInfo,
 		conf,
