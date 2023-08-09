@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 
@@ -63,9 +64,9 @@ func (s *ServerService) GetAllServers() ([]*Server, error) {
 	return s.repo.GetAllServers()
 }
 
-// GetAllServersInNetworkTargets returns all servers in database that have ips
+// GetAllServersInNetwork returns all servers in database that have ips
 // within the provided list of network targets
-func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Server, error) {
+func (s *ServerService) GetAllServersInNetwork(cidr string) ([]*Server, error) {
 	allServers, err := s.GetAllServers()
 
 	result := []*Server{}
@@ -74,33 +75,25 @@ func (s *ServerService) GetAllServersInNetworkTargets(targets []string) ([]*Serv
 		return nil, err
 	}
 
-	for _, server := range allServers {
-		for _, target := range targets {
-			_, ipnet, err := net.ParseCIDR(target)
+	_, ipnet, err := net.ParseCIDR(cidr)
 
-			if err != nil {
-				// non CIDR target just check if target matches IP
-				if server.IP == target {
-					result = append(result, server)
-					break
-				}
-
-				// target is not a cidr and does not match server ip
-				// just continue looping targets
-				continue
-			}
-
-			svrNetIP := net.ParseIP(server.IP)
-
-			if ipnet != nil && ipnet.Contains(svrNetIP) {
-				// server IP is within target CIDR block
-				result = append(result, server)
-				break
-			}
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	// s.log.Error().Interface("result", result).Msg("returning all servers in target")
+	if ipnet == nil {
+		return nil, fmt.Errorf("failed to parse cidr: %s", cidr)
+	}
+
+	for _, server := range allServers {
+		svrNetIP := net.ParseIP(server.IP)
+
+		if ipnet.Contains(svrNetIP) {
+			// server IP is within target CIDR block
+			result = append(result, server)
+		}
+
+	}
 
 	return result, nil
 }

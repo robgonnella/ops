@@ -2,12 +2,15 @@ package core
 
 import (
 	"errors"
+	"time"
 
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/exception"
 	"github.com/robgonnella/ops/internal/server"
 	"github.com/robgonnella/ops/internal/util"
+
+	"github.com/goombaio/namegenerator"
 	"github.com/spf13/viper"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -40,15 +43,17 @@ func getSqliteDbConnection(dbFile string) (*gorm.DB, error) {
 func getDefaultConfig(networkInfo *util.NetworkInfo) *config.Config {
 	user := viper.Get("user").(string)
 	identity := viper.Get("default-ssh-identity").(string)
+	seed := time.Now().UTC().UnixNano()
+	nameGenerator := namegenerator.NewNameGenerator(seed)
 
 	return &config.Config{
-		Name: "default",
+		Name: nameGenerator.Generate(),
 		SSH: config.SSHConfig{
 			User:      user,
 			Identity:  identity,
 			Overrides: []config.SSHOverride{},
 		},
-		Targets: []string{networkInfo.Cidr},
+		CIDR: networkInfo.Cidr,
 	}
 }
 
@@ -65,7 +70,7 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 	configRepo := config.NewSqliteRepo(db)
 	configService := config.NewConfigService(configRepo)
 
-	conf, err := configService.LastLoaded()
+	conf, err := configService.GetByCIDR(networkInfo.Cidr)
 
 	if err != nil {
 		if errors.Is(err, exception.ErrRecordNotFound) {
@@ -87,7 +92,6 @@ func CreateNewAppCore(networkInfo *util.NetworkInfo) (*Core, error) {
 
 	netScanner, err := discovery.NewARPScanner(
 		networkInfo,
-		conf.Targets,
 		resultChan,
 	)
 

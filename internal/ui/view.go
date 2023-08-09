@@ -92,7 +92,7 @@ func (v *view) initialize(
 
 	v.header = component.NewHeader(
 		netInfo.UserIP.String(),
-		v.appCore.Conf().Targets,
+		v.appCore.Conf().CIDR,
 		v.onActionSubmit,
 	)
 	v.serverTable = component.NewServerTable(
@@ -474,6 +474,8 @@ func (v *view) restart(options ...viewOption) {
 
 	restoreStdout()
 
+	conf := v.appCore.Conf()
+
 	netInfo, err := util.GetNetworkInfo()
 
 	if err != nil {
@@ -484,6 +486,10 @@ func (v *view) restart(options ...viewOption) {
 
 	if err != nil {
 		v.log.Fatal().Err(err).Msg("failed to restart app core")
+	}
+
+	if err := appCore.SetConfig(conf.ID); err != nil {
+		v.log.Fatal().Err(err).Msg("failed to set config on restart")
 	}
 
 	v.appCore = appCore

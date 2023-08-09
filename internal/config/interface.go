@@ -1,8 +1,6 @@
 package config
 
 import (
-	"time"
-
 	"gorm.io/datatypes"
 )
 
@@ -25,11 +23,10 @@ type SSHConfig struct {
 
 // Config represents the data structure of our user provided json configuration
 type Config struct {
-	ID      int
-	Name    string
-	SSH     SSHConfig
-	Targets []string `json:"targets"`
-	Loaded  time.Time
+	ID   int
+	Name string
+	SSH  SSHConfig
+	CIDR string
 }
 
 // SSHConfigModel represents the ssh config stored in the database
@@ -41,31 +38,28 @@ type SSHConfigModel struct {
 
 // ConfigModel represents the config stored in the database
 type ConfigModel struct {
-	ID      int            `gorm:"primaryKey"`
-	Name    string         `gorm:"uniqueIndex"`
-	SSH     SSHConfigModel `gorm:"embedded"`
-	Targets datatypes.JSON
-	Loaded  time.Time `gorm:"index:,sort:desc"`
+	ID   int            `gorm:"primaryKey"`
+	Name string         `gorm:"uniqueIndex"`
+	SSH  SSHConfigModel `gorm:"embedded"`
+	CIDR string         `gorm:"column:cidr"`
 }
 
 // Repo interface representing access to stored configs
 type Repo interface {
 	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)
+	GetByCIDR(cidr string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(id int) error
-	SetLastLoaded(id int) error
-	LastLoaded() (*Config, error)
 }
 
 // Service interface for manipulating configurations
 type Service interface {
 	Get(id int) (*Config, error)
 	GetAll() ([]*Config, error)
+	GetByCIDR(cidr string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(id int) error
-	SetLastLoaded(id int) error
-	LastLoaded() (*Config, error)
 }

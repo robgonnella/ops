@@ -2,7 +2,6 @@ package component
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/ui/style"
@@ -23,14 +22,14 @@ type Header struct {
 	legendCol1      *tview.Flex
 	legendCol2      *tview.Flex
 	switchViewInput *SwitchViewInput
-	targets         []string
+	cidr            string
 	extraLegendMap  map[string]tview.Primitive
 }
 
 // NewHeader returns a new instance of Header
 func NewHeader(
 	userIP string,
-	targets []string,
+	cidr string,
 	onViewSwitch func(text string),
 ) *Header {
 	h := &Header{}
@@ -70,9 +69,9 @@ func NewHeader(
 	currentTarget := tview.NewTextView().
 		SetText(
 			fmt.Sprintf(
-				"IP: %s, Network Targets: %s",
+				"IP: %s, Network Target: %s",
 				userIP,
-				strings.Join(targets, ","),
+				cidr,
 			),
 		)
 
@@ -82,7 +81,7 @@ func NewHeader(
 	h.root.AddItem(currentTarget, 1, 1, false)
 	h.root.AddItem(h.switchViewInput.Primitive(), 3, 1, false)
 
-	h.targets = targets
+	h.cidr = cidr
 
 	h.extraLegendMap = map[string]tview.Primitive{}
 

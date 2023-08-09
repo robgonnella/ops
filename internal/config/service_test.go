@@ -26,7 +26,7 @@ func TestConfigService(t *testing.T) {
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.2/32",
 		}
 
 		mockRepo.EXPECT().Get(expectedConfig.ID).Return(expectedConfig, nil)
@@ -44,7 +44,7 @@ func TestConfigService(t *testing.T) {
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.2/32",
 		}
 
 		conf2 := &config.Config{
@@ -53,7 +53,7 @@ func TestConfigService(t *testing.T) {
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.3/32",
 		}
 
 		expectedConfs := []*config.Config{conf1, conf2}
@@ -73,7 +73,7 @@ func TestConfigService(t *testing.T) {
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.2/32",
 		}
 
 		mockRepo.EXPECT().Create(conf).Return(conf, nil)
@@ -91,7 +91,7 @@ func TestConfigService(t *testing.T) {
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.2/32",
 		}
 
 		mockRepo.EXPECT().Update(conf).Return(conf, nil)
@@ -112,19 +112,21 @@ func TestConfigService(t *testing.T) {
 		assert.NoError(st, err)
 	})
 
-	t.Run("gets last loaded config", func(st *testing.T) {
+	t.Run("gets last config by cidr", func(st *testing.T) {
+		cidr := "172.2.2.2/32"
+
 		expectedConfig := &config.Config{
 			Name: "test",
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
 			},
-			Targets: []string{"target"},
+			CIDR: cidr,
 		}
 
-		mockRepo.EXPECT().LastLoaded().Return(expectedConfig, nil)
+		mockRepo.EXPECT().GetByCIDR(cidr).Return(expectedConfig, nil)
 
-		foundConf, err := service.LastLoaded()
+		foundConf, err := service.GetByCIDR(cidr)
 
 		assert.NoError(st, err)
 		assert.Equal(st, expectedConfig, foundConf)

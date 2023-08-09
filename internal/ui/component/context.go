@@ -2,7 +2,6 @@ package component
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -26,7 +25,7 @@ func NewConfigContext(
 ) *ConfigContext {
 	log := logger.New()
 
-	colHeaders := []string{"ID", "Name", "Target", "SSH-User", "SSH-Identity", "Overrides"}
+	colHeaders := []string{"ID", "Name", "CIDR", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
@@ -77,7 +76,7 @@ func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 		id := conf.ID
 		idStr := strconv.Itoa(id)
 		name := conf.Name
-		target := strings.Join(conf.Targets, ",")
+		cidr := conf.CIDR
 		sshUser := conf.SSH.User
 		sshIdentity := conf.SSH.Identity
 		overrides := "N"
@@ -86,7 +85,7 @@ func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 			overrides = "Y"
 		}
 
-		row := []string{idStr, name, target, sshUser, sshIdentity, overrides}
+		row := []string{idStr, name, cidr, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
 			if id == current && col == 1 {

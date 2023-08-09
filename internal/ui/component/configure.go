@@ -1,8 +1,6 @@
 package component
 
 import (
-	"strings"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/config"
@@ -39,7 +37,7 @@ func addBlankFormItems(
 	sshIdentityInput.SetLabel("SSH Identity: ")
 
 	cidrInput := tview.NewInputField()
-	cidrInput.SetLabel("Comma Separated CIDRs or IPs: ")
+	cidrInput.SetLabel("Network CIDR: ")
 
 	form.AddFormItem(configName)
 	form.AddFormItem(cidrInput)
@@ -61,15 +59,17 @@ func addBlankFormItems(
 }
 
 // every time the add ssh override button is clicked we add three new inputs
-func createOverrideInputs() (*tview.InputField, *tview.InputField, *tview.InputField) {
+func createOverrideInputs(conf config.Config) (*tview.InputField, *tview.InputField, *tview.InputField) {
 	overrideTarget := tview.NewInputField()
-	overrideTarget.SetLabel("Override Target: ")
+	overrideTarget.SetLabel("Override Target IP: ")
 
 	overrideSSHUser := tview.NewInputField()
 	overrideSSHUser.SetLabel("Override SSH User: ")
+	overrideSSHUser.SetText(conf.SSH.User)
 
 	overrideSSHIdentity := tview.NewInputField()
 	overrideSSHIdentity.SetLabel("Override SSH Identity: ")
+	overrideSSHIdentity.SetText(conf.SSH.Identity)
 
 	return overrideTarget, overrideSSHUser, overrideSSHIdentity
 }
@@ -117,7 +117,7 @@ func (f *ConfigureForm) render() {
 	f.configName, f.sshUserInput, f.sshIdentityInput, f.cidrInput =
 		addBlankFormItems(f.root, f.conf.Name)
 
-	networkTargets := strings.Join(f.conf.Targets, ",")
+	networkTargets := f.conf.CIDR
 
 	f.configName.SetText(f.conf.Name)
 	f.sshUserInput.SetText(f.conf.SSH.User)
@@ -125,7 +125,7 @@ func (f *ConfigureForm) render() {
 	f.cidrInput.SetText(networkTargets)
 
 	for _, o := range f.conf.SSH.Overrides {
-		target, user, identity := createOverrideInputs()
+		target, user, identity := createOverrideInputs(f.conf)
 
 		f.overrides = append(f.overrides, map[string]*tview.InputField{
 			"target":   target,
@@ -156,7 +156,7 @@ func (f *ConfigureForm) addFormButtons() {
 	})
 
 	f.root.AddButton("Add SSH Override", func() {
-		target, user, identity := createOverrideInputs()
+		target, user, identity := createOverrideInputs(f.conf)
 
 		f.overrides = append(f.overrides, map[string]*tview.InputField{
 			"target":   target,
@@ -195,7 +195,6 @@ func (f *ConfigureForm) addFormButtons() {
 			return
 		}
 
-		targets := strings.Split(cidr, ",")
 		confOverrides := []config.SSHOverride{}
 
 		for _, o := range f.overrides {
@@ -215,7 +214,7 @@ func (f *ConfigureForm) addFormButtons() {
 				Identity:  sshIdentity,
 				Overrides: confOverrides,
 			},
-			Targets: targets,
+			CIDR: cidr,
 		}
 
 		if f.creatingNewConfig {

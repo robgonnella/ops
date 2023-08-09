@@ -64,7 +64,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 					},
 				},
 			},
-			Targets: []string{"target"},
+			CIDR: "172.2.2.1/32",
 		}
 
 		newConf, err := repo.Create(conf)
@@ -84,7 +84,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 				Identity:  newConf.SSH.Identity,
 				Overrides: newConf.SSH.Overrides,
 			},
-			Targets: newConf.Targets,
+			CIDR: newConf.CIDR,
 		}
 
 		updatedConf, err := repo.Update(toUpdate)
@@ -107,19 +107,19 @@ func TestConfigSqliteRepo(t *testing.T) {
 		conf1 := &config.Config{
 			Name: "test2",
 			SSH: config.SSHConfig{
-				User:     "test-user1",
-				Identity: "test-identity1",
+				User:     "test-user2",
+				Identity: "test-identity2",
 			},
-			Targets: []string{"target1"},
+			CIDR: "172.2.2.2/32",
 		}
 
 		conf2 := &config.Config{
 			Name: "test3",
 			SSH: config.SSHConfig{
-				User:     "test-user2",
-				Identity: "test-identity2",
+				User:     "test-user3",
+				Identity: "test-identity3",
 			},
-			Targets: []string{"target2"},
+			CIDR: "172.2.2.3/32",
 		}
 
 		_, err := repo.Create(conf1)
@@ -144,40 +144,36 @@ func TestConfigSqliteRepo(t *testing.T) {
 
 	})
 
-	t.Run("gets last loaded", func(st *testing.T) {
+	t.Run("gets by cidr", func(st *testing.T) {
 		conf1 := &config.Config{
 			Name: "test4",
 			SSH: config.SSHConfig{
-				User:     "test-user1",
-				Identity: "test-identity1",
+				User:     "test-user4",
+				Identity: "test-identity4",
 			},
-			Targets: []string{"target1"},
+			CIDR: "172.2.2.4/32",
 		}
 
 		conf2 := &config.Config{
 			Name: "test5",
 			SSH: config.SSHConfig{
-				User:     "test-user2",
-				Identity: "test-identity2",
+				User:     "test-user5",
+				Identity: "test-identity5",
 			},
-			Targets: []string{"target2"},
+			CIDR: "172.2.2.5/32",
 		}
 
-		newConf1, err := repo.Create(conf1)
+		_, err := repo.Create(conf1)
 
 		assert.NoError(st, err)
 
-		_, err = repo.Create(conf2)
+		newConf2, err := repo.Create(conf2)
 
 		assert.NoError(st, err)
 
-		err = repo.SetLastLoaded(newConf1.ID)
+		foundConf, err := repo.GetByCIDR("172.2.2.5/32")
 
 		assert.NoError(st, err)
-
-		lastLoaded, err := repo.LastLoaded()
-
-		assert.NoError(st, err)
-		assertEqualConf(st, newConf1, lastLoaded)
+		assertEqualConf(st, newConf2, foundConf)
 	})
 }

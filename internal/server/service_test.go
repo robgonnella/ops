@@ -25,7 +25,7 @@ func TestServerService(t *testing.T) {
 			User:     "user",
 			Identity: "identity",
 		},
-		Targets: []string{"target"},
+		CIDR: "172.22.2.2/32",
 	}
 
 	service := server.NewService(conf, mockRepo)
@@ -50,9 +50,7 @@ func TestServerService(t *testing.T) {
 		assert.Equal(st, expectedServers, foundServers)
 	})
 
-	t.Run("gets all servers in network targets", func(st *testing.T) {
-		targets := []string{"192.168.1.10", "172.16.1.1/24"}
-
+	t.Run("gets all servers in network", func(st *testing.T) {
 		testServer1 := *testServer
 		testServer2 := *testServer
 		testServer3 := *testServer
@@ -69,12 +67,12 @@ func TestServerService(t *testing.T) {
 
 		expectedServers := []*server.Server{
 			&testServer1,
-			&testServer2,
+			&testServer3,
 		}
 
 		mockRepo.EXPECT().GetAllServers().Return(testServers, nil)
 
-		foundServers, err := service.GetAllServersInNetworkTargets(targets)
+		foundServers, err := service.GetAllServersInNetwork("192.168.1.1/24")
 
 		assert.NoError(st, err)
 		assert.Equal(st, 2, len(foundServers))

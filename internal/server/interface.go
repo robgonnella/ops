@@ -46,7 +46,7 @@ type Repo interface {
 // Service interface for server related logic
 type Service interface {
 	GetAllServers() ([]*Server, error)
-	GetAllServersInNetworkTargets(targets []string) ([]*Server, error)
+	GetAllServersInNetwork(cidr string) ([]*Server, error)
 	AddOrUpdateServer(req *Server) error
 	MarkServerOffline(ip string) error
 	StreamEvents(send chan *event.Event) int
