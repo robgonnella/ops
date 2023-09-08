@@ -13,26 +13,36 @@ import (
 func (c *Core) Monitor() error {
 	evtReceiveChan := make(chan *event.Event)
 
+	done := make(chan bool)
+
 	// create event subscription
 	c.eventSubscription = c.serverService.StreamEvents(evtReceiveChan)
 
 	// Start network scanner
-	go c.discovery.MonitorNetwork()
+	go func() {
+		c.discovery.MonitorNetwork()
+		// bail if network monitoring stops
+		done <- true
+	}()
 
 	// start polling for database updates
 	go c.pollForDatabaseUpdates()
 
 	for {
-		evt, ok := <-evtReceiveChan
-		if !ok {
-			c.mux.Lock()
-			for _, listener := range c.evtListeners {
-				close(listener.channel)
-			}
-			c.mux.Unlock()
+		select {
+		case <-c.ctx.Done():
+			return c.ctx.Err()
+		case <-done:
 			return nil
+		case err := <-c.errorChan:
+			c.log.Error().Err(err).Msg("core error")
+			return err
+		case evt, ok := <-evtReceiveChan:
+			if !ok {
+				return nil
+			}
+			c.handleServerEvent(evt)
 		}
-		c.handleServerEvent(evt)
 	}
 }
 
@@ -67,9 +77,6 @@ func (c *Core) pollForDatabaseUpdates() error {
 	for {
 		select {
 		case <-c.ctx.Done():
-			for _, listener := range c.serverPollListeners {
-				close(listener.channel)
-			}
 			return c.ctx.Err()
 		default:
 			if errCount >= 5 {

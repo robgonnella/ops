@@ -1,10 +1,12 @@
 package discovery_test
 
 import (
+	"net"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/robgonnella/go-lanscan/scanner"
 	"github.com/robgonnella/ops/internal/discovery"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_server "github.com/robgonnella/ops/internal/mock/server"
@@ -20,27 +22,30 @@ func TestDiscoveryService(t *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
-		resultChan := make(chan *discovery.DiscoveryResult)
+		resultChan := make(chan *scanner.SynScanResult)
+		doneChan := make(chan bool)
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
 			mockServerService,
 			resultChan,
+			doneChan,
 		)
 
-		port := discovery.Port{
-			ID:     22,
-			Status: discovery.PortClosed,
+		port := scanner.Port{
+			ID:      22,
+			Service: "ssh",
+			Status:  scanner.PortClosed,
 		}
 
-		result := &discovery.DiscoveryResult{
-			ID:       "id",
-			Hostname: "hostname",
-			IP:       "ip",
-			OS:       "os",
-			Status:   server.StatusOffline,
-			Ports:    []discovery.Port{port},
+		mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
+
+		result := &scanner.SynScanResult{
+			MAC:    mac,
+			IP:     net.ParseIP("127.0.0.1"),
+			Status: scanner.StatusOffline,
+			Port:   port,
 		}
 
 		mockScanner.EXPECT().Scan().DoAndReturn(func() error {
@@ -50,7 +55,7 @@ func TestDiscoveryService(t *testing.T) {
 			return nil
 		})
 		mockScanner.EXPECT().Stop()
-		mockServerService.EXPECT().MarkServerOffline(result.IP)
+		mockServerService.EXPECT().MarkServerOffline(result.IP.String())
 
 		go service.MonitorNetwork()
 
@@ -63,34 +68,37 @@ func TestDiscoveryService(t *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
-		resultChan := make(chan *discovery.DiscoveryResult)
+		resultChan := make(chan *scanner.SynScanResult)
+		doneChan := make(chan bool)
+
+		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
 			mockServerService,
 			resultChan,
+			doneChan,
 		)
 
-		port := discovery.Port{
-			ID:     22,
-			Status: discovery.PortClosed,
+		port := scanner.Port{
+			ID:      22,
+			Service: "ssh",
+			Status:  scanner.PortClosed,
 		}
 
-		result := &discovery.DiscoveryResult{
-			ID:       "id",
-			Hostname: "hostname",
-			IP:       "ip",
-			OS:       "os",
-			Status:   server.StatusOnline,
-			Ports:    []discovery.Port{port},
+		result := &scanner.SynScanResult{
+			MAC:    mac,
+			IP:     net.ParseIP("127.0.0.1"),
+			Status: scanner.StatusOnline,
+			Port:   port,
 		}
 
 		expectedServerCall := &server.Server{
-			ID:        result.ID,
-			Hostname:  result.Hostname,
-			IP:        result.IP,
-			OS:        result.OS,
+			ID:        result.MAC.String(),
+			Hostname:  "unknown",
+			IP:        result.IP.String(),
+			OS:        "unknown",
 			Status:    server.StatusOnline,
 			SshStatus: server.SSHDisabled,
 		}
@@ -115,27 +123,30 @@ func TestDiscoveryService(t *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
 		mockServerService := mock_server.NewMockService(ctrl)
-		resultChan := make(chan *discovery.DiscoveryResult)
+		resultChan := make(chan *scanner.SynScanResult)
+		doneChan := make(chan bool)
+
+		mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 
 		service := discovery.NewScannerService(
 			mockScanner,
 			mockDetailScanner,
 			mockServerService,
 			resultChan,
+			doneChan,
 		)
 
-		port := discovery.Port{
-			ID:     22,
-			Status: discovery.PortOpen,
+		port := scanner.Port{
+			ID:      22,
+			Service: "ssh",
+			Status:  scanner.PortOpen,
 		}
 
-		result := &discovery.DiscoveryResult{
-			ID:       "id",
-			Hostname: "hostname",
-			IP:       "ip",
-			OS:       "os",
-			Status:   server.StatusOnline,
-			Ports:    []discovery.Port{port},
+		result := &scanner.SynScanResult{
+			MAC:    mac,
+			IP:     net.ParseIP("127.0.0.1"),
+			Status: scanner.StatusOnline,
+			Port:   port,
 		}
 
 		expectedDetails := &discovery.Details{
@@ -144,9 +155,9 @@ func TestDiscoveryService(t *testing.T) {
 		}
 
 		expectedServerCall := &server.Server{
-			ID:        result.ID,
+			ID:        result.MAC.String(),
 			Hostname:  expectedDetails.Hostname,
-			IP:        result.IP,
+			IP:        result.IP.String(),
 			OS:        expectedDetails.OS,
 			Status:    server.StatusOnline,
 			SshStatus: server.SSHEnabled,
@@ -159,7 +170,7 @@ func TestDiscoveryService(t *testing.T) {
 			return nil
 		})
 		mockScanner.EXPECT().Stop()
-		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), result.IP).Return(expectedDetails, nil)
+		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), result.IP.String()).Return(expectedDetails, nil)
 		mockServerService.EXPECT().AddOrUpdateServer(expectedServerCall)
 
 		go service.MonitorNetwork()

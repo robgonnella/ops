@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/robgonnella/go-lanscan/network"
+	"github.com/robgonnella/go-lanscan/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/discovery"
@@ -15,7 +17,6 @@ import (
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_server "github.com/robgonnella/ops/internal/mock/server"
 	"github.com/robgonnella/ops/internal/server"
-	"github.com/robgonnella/ops/internal/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,12 +29,11 @@ func TestCore(t *testing.T) {
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
 	mockServerService := mock_server.NewMockService(ctrl)
-	resultChan := make(chan *discovery.DiscoveryResult)
+	resultChan := make(chan *scanner.SynScanResult)
+	doneChan := make(chan bool)
 
-	networkInfo := &util.NetworkInfo{
-		Hostname:  "hostname",
+	networkInfo := &network.NetworkInfo{
 		Interface: &net.Interface{},
-		Gateway:   net.ParseIP("0.0.0.0"),
 		UserIP:    net.ParseIP("0.0.0.0"),
 		Cidr:      "0.0.0.0/0",
 	}
@@ -43,6 +43,7 @@ func TestCore(t *testing.T) {
 		mockDetailsScanner,
 		mockServerService,
 		resultChan,
+		doneChan,
 	)
 
 	conf := config.Config{
@@ -188,18 +189,17 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("monitors network", func(st *testing.T) {
-		discoveryResults := []*discovery.DiscoveryResult{
+		mac, _ := net.ParseMAC("00:00:00:00:00:00")
+
+		synResults := []*scanner.SynScanResult{
 			{
-				ID:       "id",
-				Hostname: "hostname",
-				IP:       "ip",
-				OS:       "os",
-				Status:   server.StatusOnline,
-				Ports: []discovery.Port{
-					{
-						ID:     22,
-						Status: discovery.PortOpen,
-					},
+				MAC:    mac,
+				IP:     net.ParseIP("127.0.0.1"),
+				Status: scanner.StatusOnline,
+				Port: scanner.Port{
+					ID:      22,
+					Service: "",
+					Status:  scanner.PortOpen,
 				},
 			},
 		}
@@ -210,11 +210,11 @@ func TestCore(t *testing.T) {
 		}
 
 		serverToUpdate := &server.Server{
-			ID:        discoveryResults[0].ID,
+			ID:        synResults[0].MAC.String(),
 			Hostname:  details.Hostname,
-			IP:        discoveryResults[0].IP,
+			IP:        synResults[0].IP.String(),
 			OS:        details.OS,
-			Status:    discoveryResults[0].Status,
+			Status:    server.Status(synResults[0].Status),
 			SshStatus: server.SSHEnabled,
 		}
 
@@ -222,22 +222,25 @@ func TestCore(t *testing.T) {
 		wg.Add(5)
 
 		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
+
 		mockServerService.EXPECT().
 			GetAllServersInNetwork(conf.CIDR).
 			Do(func(string) {
 				wg.Done()
 			})
+
 		mockScanner.EXPECT().Scan().DoAndReturn(func() error {
 			defer wg.Done()
 			go func() {
-				for _, r := range discoveryResults {
+				for _, r := range synResults {
 					resultChan <- r
 				}
 			}()
 			return nil
 		})
+
 		mockDetailsScanner.EXPECT().
-			GetServerDetails(gomock.Any(), "ip").
+			GetServerDetails(gomock.Any(), "127.0.0.1").
 			DoAndReturn(func(
 				ctx context.Context,
 				ip string,
@@ -245,13 +248,16 @@ func TestCore(t *testing.T) {
 				defer wg.Done()
 				return details, nil
 			})
+
 		mockServerService.EXPECT().AddOrUpdateServer(serverToUpdate).Do(
 			func(*server.Server) {
 				coreService.Stop()
 				wg.Done()
 			},
 		)
+
 		mockScanner.EXPECT().Stop()
+
 		mockServerService.EXPECT().StopStream(1).Do(func(int) {
 			wg.Done()
 		})

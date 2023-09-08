@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/robgonnella/go-lanscan/scanner"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/server"
 )
@@ -15,7 +16,9 @@ type ScannerService struct {
 	scanner       Scanner
 	detailScanner DetailScanner
 	serverService server.Service
-	resultChan    chan *DiscoveryResult
+	resultChan    chan *scanner.SynScanResult
+	scanDone      chan bool
+	errorChan     chan error
 	log           logger.Logger
 }
 
@@ -24,7 +27,8 @@ func NewScannerService(
 	scanner Scanner,
 	detailScanner DetailScanner,
 	serverService server.Service,
-	resultChan chan *DiscoveryResult,
+	resultChan chan *scanner.SynScanResult,
+	doneChan chan bool,
 ) *ScannerService {
 	log := logger.New()
 
@@ -38,6 +42,8 @@ func NewScannerService(
 		detailScanner: detailScanner,
 		serverService: serverService,
 		resultChan:    resultChan,
+		scanDone:      doneChan,
+		errorChan:     make(chan error),
 		log:           log,
 	}
 }
@@ -53,8 +59,8 @@ func (s *ScannerService) MonitorNetwork() {
 // Stop stop network discover. Once called this service will be useless.
 // A new one must be instantiated to continue
 func (s *ScannerService) Stop() {
-	s.scanner.Stop()
 	s.cancel()
+	s.scanner.Stop()
 }
 
 // private
@@ -66,7 +72,7 @@ func (s *ScannerService) pollNetwork() {
 	// always scan in goroutine to prevent blocking result channel
 	go func() {
 		if err := s.scanner.Scan(); err != nil {
-			s.cancel()
+			s.errorChan <- err
 		}
 	}()
 
@@ -75,15 +81,30 @@ func (s *ScannerService) pollNetwork() {
 		case <-s.ctx.Done():
 			s.log.Info().Msg("Network polling stopped")
 			ticker.Stop()
-			s.cancel()
 			return
 		case r := <-s.resultChan:
-			s.handleDiscoveryResult(r)
+			dr := &DiscoveryResult{
+				ID:       r.MAC.String(),
+				IP:       r.IP.String(),
+				Hostname: "",
+				OS:       "",
+				Status:   server.Status(r.Status),
+				Port: Port{
+					ID:     r.Port.ID,
+					Status: PortStatus(r.Port.Status),
+				},
+			}
+			s.handleDiscoveryResult(dr)
+		case err := <-s.errorChan:
+			s.log.Error().Err(err).Msg("discovery service encountered an error")
+			return
+		case <-s.scanDone:
+			// nothing to do here since we're polling
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
 			go func() {
 				if err := s.scanner.Scan(); err != nil {
-					s.cancel()
+					s.errorChan <- err
 				}
 			}()
 		}
@@ -92,29 +113,20 @@ func (s *ScannerService) pollNetwork() {
 
 // handle results found during polling
 func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
-	deviceType := s.getDeviceType(result)
-
 	fields := map[string]interface{}{
-		"id":         result.ID,
-		"hostname":   result.Hostname,
-		"ip":         result.IP,
-		"os":         result.OS,
-		"status":     result.Status,
-		"sshStatus":  s.getSSHStatus(result),
-		"deviceType": deviceType,
+		"id":        result.ID,
+		"hostname":  result.Hostname,
+		"ip":        result.IP,
+		"os":        result.OS,
+		"status":    result.Status,
+		"sshStatus": s.getSSHStatus(result),
 	}
 
 	s.log.Info().Fields(fields).Msg("found network device")
 
 	switch result.Status {
 	case server.StatusOnline:
-		if deviceType == ServerDevice {
-			go s.setServerToOnline(result)
-		} else {
-			s.log.Info().
-				Str("ip", result.IP).
-				Msg("Unknown device detected on network")
-		}
+		go s.setServerToOnline(result)
 	case server.StatusOffline:
 		go s.setServerToOffline(result)
 	default:
@@ -125,27 +137,14 @@ func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 
 }
 
-// if port 22 is detected then we can assume its a server
-func (s *ScannerService) getDeviceType(result *DiscoveryResult) DeviceType {
-	for _, port := range result.Ports {
-		if port.ID == 22 {
-			return ServerDevice
-		}
-	}
-
-	return UnknownDevice
-}
-
 // checks if port is 22 and whether the port is open or closed
 func (s *ScannerService) getSSHStatus(result *DiscoveryResult) server.SSHStatus {
-	for _, port := range result.Ports {
-		if port.ID == 22 {
-			if port.Status == PortOpen {
-				return server.SSHEnabled
-			}
-
-			return server.SSHDisabled
+	if result.Port.ID == 22 {
+		if result.Port.Status == PortOpen {
+			return server.SSHEnabled
 		}
+
+		return server.SSHDisabled
 	}
 
 	return server.SSHDisabled

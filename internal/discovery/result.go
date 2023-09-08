@@ -2,15 +2,6 @@ package discovery
 
 import "github.com/robgonnella/ops/internal/server"
 
-// DeviceType represents a type of device discovered on the network
-type DeviceType int
-
-// Enum values for our different device types
-const (
-	ServerDevice DeviceType = iota
-	UnknownDevice
-)
-
 // PortStatus represents possible port statuses
 type PortStatus string
 
@@ -34,7 +25,7 @@ type DiscoveryResult struct {
 	IP       string
 	OS       string
 	Status   server.Status
-	Ports    []Port
+	Port     Port
 }
 
 // Details represents the details returned by DetailScanner

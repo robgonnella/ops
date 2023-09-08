@@ -17,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
+          go-version: '1.21'
 
       - name: Build Linux
         run: 'make release'
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
+          go-version: '1.21'
 
       - name: Build Darwin
         run: 'make release'
@@ -85,6 +85,6 @@ jobs:
     steps:
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.19'
+          go-version: '1.21'
       - name: Update go package to latest
         run: go install github.com/robgonnella/ops@"${GITHUB_REF#refs/tags/}"
