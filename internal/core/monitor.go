@@ -1,22 +1,14 @@
 package core
 
 import (
-	"fmt"
-	"time"
-
+	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
-	"github.com/robgonnella/ops/internal/server"
 )
 
 // Monitor starts the processes for monitoring and tracking
 // devices on the configured network
 func (c *Core) Monitor() error {
-	evtReceiveChan := make(chan *event.Event)
-
 	done := make(chan bool)
-
-	// create event subscription
-	c.eventSubscription = c.serverService.StreamEvents(evtReceiveChan)
 
 	// Start network scanner
 	go func() {
@@ -24,9 +16,6 @@ func (c *Core) Monitor() error {
 		// bail if network monitoring stops
 		done <- true
 	}()
-
-	// start polling for database updates
-	go c.pollForDatabaseUpdates()
 
 	for {
 		select {
@@ -37,18 +26,22 @@ func (c *Core) Monitor() error {
 		case err := <-c.errorChan:
 			c.log.Error().Err(err).Msg("core error")
 			return err
-		case evt, ok := <-evtReceiveChan:
+		case evt, ok := <-c.eventChan:
 			if !ok {
 				return nil
 			}
-			c.handleServerEvent(evt)
+			c.handleDiscoveryEvent(evt)
 		}
 	}
 }
 
-// handles server events from the database
-func (c *Core) handleServerEvent(evt *event.Event) {
-	payload := evt.Payload.(*server.Server)
+// handles events from discovery service
+func (c *Core) handleDiscoveryEvent(evt *event.Event) {
+	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
+
+	if !ok {
+		return
+	}
 
 	fields := map[string]interface{}{
 		"type":     evt.Type,
@@ -56,7 +49,7 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 		"hostname": payload.Hostname,
 		"os":       payload.OS,
 		"ip":       payload.IP,
-		"ssh":      payload.SshStatus,
+		"ssh":      payload.Port.Status,
 	}
 
 	c.log.Info().Fields(fields).Msg("Event Received")
@@ -66,42 +59,5 @@ func (c *Core) handleServerEvent(evt *event.Event) {
 
 	for _, listener := range c.evtListeners {
 		listener.channel <- evt
-	}
-}
-
-// polls database for all servers within configured network targets
-func (c *Core) pollForDatabaseUpdates() error {
-	pollTime := time.Second * 2
-	errCount := 0
-
-	for {
-		select {
-		case <-c.ctx.Done():
-			return c.ctx.Err()
-		default:
-			if errCount >= 5 {
-				return fmt.Errorf("too many consecutive errors encountered")
-			}
-
-			response, err := c.serverService.GetAllServersInNetwork(
-				c.conf.CIDR,
-			)
-
-			if err != nil {
-				c.log.Error().Err(err).Msg("")
-				errCount++
-				continue
-			}
-
-			errCount = 0
-
-			c.mux.Lock()
-			for _, listener := range c.serverPollListeners {
-				listener.channel <- response
-			}
-			c.mux.Unlock()
-
-			time.Sleep(pollTime)
-		}
 	}
 }

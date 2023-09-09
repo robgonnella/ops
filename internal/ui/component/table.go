@@ -18,6 +18,23 @@ func createTable(title string, columnHeaders []string) *tview.Table {
 
 	table.SetBorderPadding(2, 2, 2, 2)
 
+	table.SetBlurFunc(func() {
+		table.SetBorderColor(style.ColorDefault)
+	})
+
+	table.SetFocusFunc(func() {
+		table.SetBorderColor(style.ColorPurple)
+	})
+
+	table.SetTitle(title)
+	table.SetTitleColor(style.ColorLightGreen)
+
+	setTableHeaders(table, columnHeaders)
+
+	return table
+}
+
+func setTableHeaders(table *tview.Table, columnHeaders []string) {
 	for c, h := range columnHeaders {
 		cell := tview.NewTableCell(h)
 		cell.SetExpansion(1)
@@ -37,16 +54,4 @@ func createTable(title string, columnHeaders []string) *tview.Table {
 		table.SetCell(1, c, cell)
 	}
 
-	table.SetBlurFunc(func() {
-		table.SetBorderColor(style.ColorDefault)
-	})
-
-	table.SetFocusFunc(func() {
-		table.SetBorderColor(style.ColorPurple)
-	})
-
-	table.SetTitle(title)
-	table.SetTitleColor(style.ColorLightGreen)
-
-	return table
 }

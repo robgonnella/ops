@@ -1,12 +1,9 @@
 package component
 
 import (
-	"strconv"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/config"
-	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui/key"
 	"github.com/robgonnella/ops/internal/ui/style"
 )
@@ -18,13 +15,11 @@ type ConfigContext struct {
 
 // NewConfigContext returns a new instance of NewConfigContext
 func NewConfigContext(
-	current int,
+	current string,
 	confs []*config.Config,
-	onSelect func(id int),
-	onDelete func(name string, id int),
+	onSelect func(id string),
+	onDelete func(name string, id string),
 ) *ConfigContext {
-	log := logger.New()
-
 	colHeaders := []string{"ID", "Name", "CIDR", "SSH-User", "SSH-Identity", "Overrides"}
 	table := createTable("Context", colHeaders)
 
@@ -32,15 +27,8 @@ func NewConfigContext(
 		if evt.Key() == key.KeyCtrlD {
 			row, _ := table.GetSelection()
 
-			idStr := table.GetCell(row, 0).Text
+			id := table.GetCell(row, 0).Text
 			name := table.GetCell(row, 1).Text
-
-			id, err := strconv.Atoi(idStr)
-
-			if err != nil {
-				log.Error().Err(err).Msg("failed to delete context")
-				return nil
-			}
 
 			onDelete(name, id)
 
@@ -49,12 +37,7 @@ func NewConfigContext(
 
 		if evt.Key() == key.KeyEnter {
 			row, _ := table.GetSelection()
-			idStr := table.GetCell(row, 0).Text
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to select new context")
-				return nil
-			}
+			id := table.GetCell(row, 0).Text
 			onSelect(id)
 			return nil
 		}
@@ -69,12 +52,11 @@ func NewConfigContext(
 }
 
 // UpdateConfigs updates the table with a new list of contexts
-func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
+func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
 	c.clearRows()
 
 	for rowIdx, conf := range confs {
 		id := conf.ID
-		idStr := strconv.Itoa(id)
 		name := conf.Name
 		cidr := conf.CIDR
 		sshUser := conf.SSH.User
@@ -85,7 +67,7 @@ func (c *ConfigContext) UpdateConfigs(current int, confs []*config.Config) {
 			overrides = "Y"
 		}
 
-		row := []string{idStr, name, cidr, sshUser, sshIdentity, overrides}
+		row := []string{id, name, cidr, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
 			if id == current && col == 1 {

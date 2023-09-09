@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -15,7 +14,6 @@ import (
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
-	"github.com/robgonnella/ops/internal/server"
 	"github.com/robgonnella/ops/internal/ui/component"
 	"github.com/robgonnella/ops/internal/ui/key"
 )
@@ -48,12 +46,11 @@ type view struct {
 	eventTable             *component.EventTable
 	configureForm          *component.ConfigureForm
 	contextTable           *component.ConfigContext
-	contextToDelete        int
+	contextToDelete        string
 	appCore                *core.Core
-	serverUpdateChan       chan []*server.Server
 	eventUpdateChan        chan *event.Event
-	serverPollListenerID   int
-	eventListenerID        int
+	serverUpdateChan       chan *event.Event
+	eventListenerIDs       []int
 	prevFocusedName        string
 	focusedName            string
 	viewNames              []string
@@ -124,8 +121,10 @@ func (v *view) initialize(
 		AddItem(v.header.Primitive(), 12, 1, false).
 		AddItem(v.pages, 0, 1, true)
 
-	v.serverUpdateChan = make(chan []*server.Server)
+	v.serverUpdateChan = make(chan *event.Event)
 	v.eventUpdateChan = make(chan *event.Event)
+	v.eventListenerIDs = []int{}
+
 	v.focusedName = "servers"
 
 	go func() {
@@ -200,7 +199,7 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 }
 
 // selects a new context for network scanning
-func (v *view) onContextSelect(id int) {
+func (v *view) onContextSelect(id string) {
 	if err := v.appCore.SetConfig(id); err != nil {
 		v.log.Error().Err(err).Msg("failed to set new context")
 		v.showErrorModal("Failed to set new context")
@@ -212,12 +211,12 @@ func (v *view) onContextSelect(id int) {
 
 // dismisses confirmation modal when deleting a context
 func (v *view) dismissContextDelete() {
-	v.contextToDelete = 0
+	v.contextToDelete = ""
 	v.app.SetRoot(v.root, true)
 }
 
 // shows confirmation modal when attempting to delete a context
-func (v *view) onContextDelete(name string, id int) {
+func (v *view) onContextDelete(name string, id string) {
 	v.contextToDelete = id
 	buttons := []component.ModalButton{
 		{
@@ -238,12 +237,12 @@ func (v *view) onContextDelete(name string, id int) {
 
 // deletes a network scanning context (configuration)
 func (v *view) deleteContext() {
-	if v.contextToDelete == 0 {
+	if v.contextToDelete == "" {
 		return
 	}
 
 	defer func() {
-		v.contextToDelete = 0
+		v.contextToDelete = ""
 	}()
 
 	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
@@ -402,41 +401,26 @@ func (v *view) onSSH(ip string) {
 	v.restart()
 }
 
-// handle incoming server results from database polling
-func (v *view) processBackgroundServerUpdates() {
-	go func() {
-		for {
-			servers, ok := <-v.serverUpdateChan
-			if !ok {
-				return
-			}
-			v.app.QueueUpdateDraw(func() {
-				sort.Slice(servers, func(i, j int) bool {
-					if servers[i].Hostname == "unknown" {
-						return false
-					}
-					if servers[j].Hostname == "unknown" {
-						return true
-					}
-					return servers[i].Hostname < servers[j].Hostname
-				})
-				v.serverTable.UpdateTable(servers)
-			})
-		}
-	}()
-}
-
 // handle incoming database events
 func (v *view) processBackgroundEventUpdates() {
 	go func() {
 		for {
-			evt, ok := <-v.eventUpdateChan
-			if !ok {
-				return
+			select {
+			case evt, ok := <-v.eventUpdateChan:
+				if !ok {
+					return
+				}
+				v.app.QueueUpdateDraw(func() {
+					v.eventTable.UpdateTable(evt)
+				})
+			case evt, ok := <-v.serverUpdateChan:
+				if !ok {
+					return
+				}
+				v.app.QueueUpdateDraw(func() {
+					v.serverTable.UpdateTable(evt)
+				})
 			}
-			v.app.QueueUpdateDraw(func() {
-				v.eventTable.UpdateTable(evt)
-			})
 		}
 	}()
 }
@@ -460,10 +444,10 @@ func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
 // completely stops the tui app and all backend processes.
 // this requires a full restart including re-instantiation of entire backend
 func (v *view) stop() {
-	v.appCore.RemoveServerPollListener(v.serverPollListenerID)
-	v.appCore.RemoveEventListener(v.eventListenerID)
-	v.serverPollListenerID = 0
-	v.eventListenerID = 0
+	for _, id := range v.eventListenerIDs {
+		v.appCore.RemoveEventListener(id)
+	}
+	v.eventListenerIDs = []int{}
 	v.appCore.Stop()
 	v.app.Stop()
 }
@@ -514,11 +498,14 @@ func (v *view) restart(options ...viewOption) {
 // for channel updates, starts backend processes, and starts terminal ui
 func (v *view) run() error {
 	v.bindKeys()
-	v.serverPollListenerID = v.appCore.RegisterServerPollListener(
-		v.serverUpdateChan,
+	v.eventListenerIDs = append(
+		v.eventListenerIDs,
+		v.appCore.RegisterEventListener(v.eventUpdateChan),
 	)
-	v.eventListenerID = v.appCore.RegisterEventListener(v.eventUpdateChan)
-	v.processBackgroundServerUpdates()
+	v.eventListenerIDs = append(
+		v.eventListenerIDs,
+		v.appCore.RegisterEventListener(v.serverUpdateChan),
+	)
 	v.processBackgroundEventUpdates()
 	v.appCore.StartDaemon()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()

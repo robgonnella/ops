@@ -50,7 +50,7 @@ func (mr *MockRepoMockRecorder) Create(arg0 interface{}) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockRepo) Delete(arg0 int) error {
+func (m *MockRepo) Delete(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0)
 	ret0, _ := ret[0].(error)
@@ -64,7 +64,7 @@ func (mr *MockRepoMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockRepo) Get(arg0 int) (*config.Config, error) {
+func (m *MockRepo) Get(arg0 string) (*config.Config, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
 	ret0, _ := ret[0].(*config.Config)
@@ -162,7 +162,7 @@ func (mr *MockServiceMockRecorder) Create(arg0 interface{}) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockService) Delete(arg0 int) error {
+func (m *MockService) Delete(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0)
 	ret0, _ := ret[0].(error)
@@ -176,7 +176,7 @@ func (mr *MockServiceMockRecorder) Delete(arg0 interface{}) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockService) Get(arg0 int) (*config.Config, error) {
+func (m *MockService) Get(arg0 string) (*config.Config, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
 	ret0, _ := ret[0].(*config.Config)

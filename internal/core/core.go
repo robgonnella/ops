@@ -9,7 +9,6 @@ import (
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
-	"github.com/robgonnella/ops/internal/server"
 )
 
 // EventListener represents a registered listener for database events
@@ -18,30 +17,21 @@ type EventListener struct {
 	channel chan *event.Event
 }
 
-// ServerPollListener represents a registered listener for
-// database server polling
-type ServerPollListener struct {
-	id      int
-	channel chan []*server.Server
-}
-
 // Core represents our core data structure through which the ui can interact
 // with the backend
 type Core struct {
-	ctx                 context.Context
-	cancel              context.CancelFunc
-	conf                *config.Config
-	networkInfo         *network.NetworkInfo
-	configService       config.Service
-	discovery           discovery.Service
-	serverService       server.Service
-	log                 logger.Logger
-	eventSubscription   int
-	evtListeners        []*EventListener
-	serverPollListeners []*ServerPollListener
-	nextListenerId      int
-	errorChan           chan error
-	mux                 sync.Mutex
+	ctx            context.Context
+	cancel         context.CancelFunc
+	conf           *config.Config
+	networkInfo    *network.NetworkInfo
+	configService  config.Service
+	discovery      discovery.Service
+	log            logger.Logger
+	eventChan      chan *event.Event
+	evtListeners   []*EventListener
+	nextListenerId int
+	errorChan      chan error
+	mux            sync.Mutex
 }
 
 // New returns new core module for given configuration
@@ -49,27 +39,26 @@ func New(
 	networkInfo *network.NetworkInfo,
 	conf *config.Config,
 	configService config.Service,
-	serverService server.Service,
 	discovery discovery.Service,
+	discoveryEvtChan chan *event.Event,
 ) *Core {
 	log := logger.New()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Core{
-		ctx:                 ctx,
-		cancel:              cancel,
-		networkInfo:         networkInfo,
-		conf:                conf,
-		configService:       configService,
-		discovery:           discovery,
-		serverService:       serverService,
-		evtListeners:        []*EventListener{},
-		serverPollListeners: []*ServerPollListener{},
-		errorChan:           make(chan error),
-		nextListenerId:      1,
-		mux:                 sync.Mutex{},
-		log:                 log,
+		ctx:            ctx,
+		cancel:         cancel,
+		networkInfo:    networkInfo,
+		conf:           conf,
+		configService:  configService,
+		discovery:      discovery,
+		eventChan:      discoveryEvtChan,
+		evtListeners:   []*EventListener{},
+		errorChan:      make(chan error),
+		nextListenerId: 1,
+		mux:            sync.Mutex{},
+		log:            log,
 	}
 }
 
@@ -78,9 +67,6 @@ func New(
 // instantiated to continue.
 func (c *Core) Stop() error {
 	c.discovery.Stop()
-	if c.eventSubscription != 0 {
-		c.serverService.StopStream(c.eventSubscription)
-	}
 	c.cancel()
 	return c.ctx.Err()
 }
@@ -119,7 +105,7 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 }
 
 // SetConfig sets the current active configuration
-func (c *Core) SetConfig(id int) error {
+func (c *Core) SetConfig(id string) error {
 	conf, err := c.configService.Get(id)
 
 	if err != nil {
@@ -132,7 +118,7 @@ func (c *Core) SetConfig(id int) error {
 }
 
 // DeleteConfig deletes a configuration
-func (c *Core) DeleteConfig(id int) error {
+func (c *Core) DeleteConfig(id string) error {
 	return c.configService.Delete(id)
 }
 
@@ -179,37 +165,4 @@ func (c *Core) RemoveEventListener(id int) {
 	}
 
 	c.evtListeners = listeners
-}
-
-// RegisterServerPollListener registers a channel as a
-// listener for server polling results
-func (c *Core) RegisterServerPollListener(channel chan []*server.Server) int {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	listener := &ServerPollListener{
-		id:      c.nextListenerId,
-		channel: channel,
-	}
-
-	c.serverPollListeners = append(c.serverPollListeners, listener)
-	c.nextListenerId++
-
-	return listener.id
-}
-
-// RemoveServerPollListener removes and closes a channel previously
-// registered to listen for server polling results
-func (c *Core) RemoveServerPollListener(id int) {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	listeners := []*ServerPollListener{}
-	for _, listener := range c.serverPollListeners {
-		if listener.id != id {
-			listeners = append(listeners, listener)
-		}
-	}
-
-	c.serverPollListeners = listeners
 }

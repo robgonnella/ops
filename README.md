@@ -13,16 +13,16 @@ managing kubernetes clusters via a terminal ui application.
 
 ## Runtime Dependencies
 
-Ops has some external runtime dependencies: libpcap, [ansible].
+Ops has some external runtime dependencies: libpcap.
 
 - mac
 ```bash
-brew install ansible libpcap
+brew install libpcap
 ```
 
 - debian
 ```bash
-sudo apt update && sudo apt install -y ansible libpcap-dev
+sudo apt update && sudo apt install -y libpcap-dev
 ```
 
 ## Build Dependencies
@@ -53,7 +53,6 @@ PATH="${GOPATH}/bin:$PATH"
 - install using golang
   - dependencies
     - golang
-    - ansible
     - libpcap
     - git
 
@@ -65,7 +64,6 @@ go install github.com/robgonnella/ops@latest
   - dependencies
     - golang
     - make
-    - ansible
     - libpcap
     - git
 
@@ -77,7 +75,6 @@ make install
 
 - use pre-built binaries: https://github.com/robgonnella/ops/releases
   - dependencies
-    - ansible
     - libpcap
 
 ## Usage
@@ -93,13 +90,6 @@ will fail to start.
 sudo ops
 ```
 
-- print version and other details
-
-```bash
-ops version
-ops info
-```
-
 - clear database file and log file
 
 ```bash
@@ -111,6 +101,8 @@ ops clear
 ```bash
 ops help
 # or
+ops --help
+# or
 ops <cmd> --help
 ```
 
@@ -120,21 +112,15 @@ ops <cmd> --help
 
 ## Files and Config
 
-- `ops.db`: Configurations and server details are stored locally on your machine
-  in a sqlite database located in your machines default cache directory. On Unix
-  systems, it returns `$XDG_CACHE_HOME` if non-empty, else `$HOME/.cache`. On
-  Darwin, it returns `$HOME/Library/Caches`.
+- `config.json`: Stores network configurations for scanning `~/.config/ops/config.json`
 - `ops.log`: Additional logging `~/.config/ops/ops.log`
 
 ## Technologies
 
 - [tview] is used to build the frontend. This is a wonderful open source
   terminal ui library provided by [rivo]!
-- [ansible] is also used on the backend to gather additional details about a
-  device where ssh is granted
 
 [rivo]: https://github.com/rivo
 [tview]: https://github.com/rivo/tview
-[ansible]: https://docs.ansible.com/
 [k9s]: https://github.com/derailed/k9s
 [derailed]: https://github.com/derailed

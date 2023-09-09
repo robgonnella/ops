@@ -1,6 +1,14 @@
 package discovery
 
-import "github.com/robgonnella/ops/internal/server"
+// ServerStatus represents possible server statuses
+type ServerStatus string
+
+const (
+	// ServerOnline status used when a server online
+	ServerOnline ServerStatus = "online"
+	// ServerOffline status used when a server offline
+	ServerOffline ServerStatus = "offline"
+)
 
 // PortStatus represents possible port statuses
 type PortStatus string
@@ -20,11 +28,12 @@ type Port struct {
 
 // DiscoveryResult represents our discovered device on the network
 type DiscoveryResult struct {
+	Type     string
 	ID       string
 	Hostname string
 	IP       string
 	OS       string
-	Status   server.Status
+	Status   ServerStatus
 	Port     Port
 }
 
