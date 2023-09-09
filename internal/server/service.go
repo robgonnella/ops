@@ -177,9 +177,6 @@ func (s *ServerService) StopStream(id int) {
 
 	s.log.Info().Int("channelID", id).Msg("Filtering channel")
 	s.evtChans = filterChannels(s.evtChans, func(c *eventChannel) bool {
-		if c.id == id {
-			close(c.send)
-		}
 		return c.id != id
 	})
 }

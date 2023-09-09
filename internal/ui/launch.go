@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/robgonnella/go-lanscan/network"
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/logger"
-	"github.com/robgonnella/ops/internal/util"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
@@ -42,7 +42,7 @@ func NewUI() *UI {
 func (u *UI) Launch(debug bool) error {
 	log := logger.New()
 
-	networkInfo, err := util.GetNetworkInfo()
+	networkInfo, err := network.GetNetworkInfo()
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get default network info")

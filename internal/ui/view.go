@@ -10,6 +10,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/robgonnella/go-lanscan/network"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/event"
@@ -17,7 +18,6 @@ import (
 	"github.com/robgonnella/ops/internal/server"
 	"github.com/robgonnella/ops/internal/ui/component"
 	"github.com/robgonnella/ops/internal/ui/key"
-	"github.com/robgonnella/ops/internal/util"
 )
 
 // viewOption provides a way to modify our view during initialization
@@ -476,7 +476,7 @@ func (v *view) restart(options ...viewOption) {
 
 	conf := v.appCore.Conf()
 
-	netInfo, err := util.GetNetworkInfo()
+	netInfo, err := network.GetNetworkInfo()
 
 	if err != nil {
 		v.log.Fatal().Err(err).Msg("failed to get default network info")

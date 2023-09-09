@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
+	"github.com/robgonnella/go-lanscan/network"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/server"
-	"github.com/robgonnella/ops/internal/util"
 )
 
 // EventListener represents a registered listener for database events
@@ -31,7 +31,7 @@ type Core struct {
 	ctx                 context.Context
 	cancel              context.CancelFunc
 	conf                *config.Config
-	networkInfo         *util.NetworkInfo
+	networkInfo         *network.NetworkInfo
 	configService       config.Service
 	discovery           discovery.Service
 	serverService       server.Service
@@ -40,12 +40,13 @@ type Core struct {
 	evtListeners        []*EventListener
 	serverPollListeners []*ServerPollListener
 	nextListenerId      int
+	errorChan           chan error
 	mux                 sync.Mutex
 }
 
 // New returns new core module for given configuration
 func New(
-	networkInfo *util.NetworkInfo,
+	networkInfo *network.NetworkInfo,
 	conf *config.Config,
 	configService config.Service,
 	serverService server.Service,
@@ -65,6 +66,7 @@ func New(
 		serverService:       serverService,
 		evtListeners:        []*EventListener{},
 		serverPollListeners: []*ServerPollListener{},
+		errorChan:           make(chan error),
 		nextListenerId:      1,
 		mux:                 sync.Mutex{},
 		log:                 log,
@@ -88,7 +90,7 @@ func (c *Core) Conf() config.Config {
 	return *c.conf
 }
 
-func (c *Core) NetworkInfo() util.NetworkInfo {
+func (c *Core) NetworkInfo() network.NetworkInfo {
 	return *c.networkInfo
 }
 
@@ -141,7 +143,11 @@ func (c *Core) GetConfigs() ([]*config.Config, error) {
 
 // StartDaemon starts the network monitoring processes in a goroutine
 func (c *Core) StartDaemon() {
-	go c.Monitor()
+	go func() {
+		if err := c.Monitor(); err != nil {
+			c.errorChan <- err
+		}
+	}()
 }
 
 // RegisterEventListener registers a channel as a listener for database events
@@ -167,9 +173,6 @@ func (c *Core) RemoveEventListener(id int) {
 
 	listeners := []*EventListener{}
 	for _, listener := range c.evtListeners {
-		if listener.id == id {
-			close(listener.channel)
-		}
 		if listener.id != id {
 			listeners = append(listeners, listener)
 		}
@@ -203,9 +206,6 @@ func (c *Core) RemoveServerPollListener(id int) {
 
 	listeners := []*ServerPollListener{}
 	for _, listener := range c.serverPollListeners {
-		if listener.id == id {
-			close(listener.channel)
-		}
 		if listener.id != id {
 			listeners = append(listeners, listener)
 		}
