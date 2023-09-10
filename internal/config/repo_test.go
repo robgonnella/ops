@@ -6,7 +6,6 @@ import (
 
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/exception"
-	"github.com/robgonnella/ops/internal/test_util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,26 +21,14 @@ func assertEqualConf(t *testing.T, expected, actual *config.Config) {
 	}
 }
 
-func TestConfigSqliteRepo(t *testing.T) {
-	testDBFile := "config.db"
+func TestConfigYamlRepo(t *testing.T) {
+	testConfigFile := "config.json"
 
 	defer func() {
-		os.RemoveAll(testDBFile)
+		os.RemoveAll(testConfigFile)
 	}()
 
-	db, err := test_util.GetDBConnection(testDBFile)
-
-	if err != nil {
-		t.Logf("failed to create test db: %s", err.Error())
-		t.FailNow()
-	}
-
-	if err := test_util.Migrate(db, config.ConfigModel{}); err != nil {
-		t.Logf("failed to migrate test db: %s", err.Error())
-		t.FailNow()
-	}
-
-	repo := config.NewSqliteRepo(db)
+	repo := config.NewJSONRepo(testConfigFile)
 
 	t.Run("returns record not found error", func(st *testing.T) {
 		_, err := repo.Get("10")

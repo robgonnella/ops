@@ -27,6 +27,7 @@ func getDefaultConfig(networkInfo *network.NetworkInfo) *config.Config {
 		SSH: config.SSHConfig{
 			User:      user,
 			Identity:  identity,
+			Port:      "22",
 			Overrides: []config.SSHOverride{},
 		},
 		CIDR: networkInfo.Cidr,
@@ -35,7 +36,8 @@ func getDefaultConfig(networkInfo *network.NetworkInfo) *config.Config {
 
 // CreateNewAppCore creates and returns a new instance of *core.Core
 func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
-	configRepo := config.NewJSONRepo()
+	configPath := viper.Get("config-path").(string)
+	configRepo := config.NewJSONRepo(configPath)
 	configService := config.NewConfigService(configRepo)
 
 	conf, err := configService.GetByCIDR(networkInfo.Cidr)

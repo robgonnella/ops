@@ -12,12 +12,14 @@ type SSHOverride struct {
 	Target   string `json:"target"`
 	User     string `json:"user"`
 	Identity string `json:"identity"`
+	Port     string `json:"port"`
 }
 
 // SSHConfig represents the config needed to ssh to servers
 type SSHConfig struct {
 	User      string        `json:"user"`
 	Identity  string        `json:"identity"`
+	Port      string        `json:"port"`
 	Overrides []SSHOverride `json:"overrides"`
 }
 
