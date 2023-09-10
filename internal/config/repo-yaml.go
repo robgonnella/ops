@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/robgonnella/ops/internal/exception"
-	"github.com/spf13/viper"
 )
 
 // JSONRepo is our repo implementation for json
@@ -22,9 +21,7 @@ type JSONRepo struct {
 }
 
 // NewJSONRepo returns a new ops repo for flat yaml file
-func NewJSONRepo() *JSONRepo {
-	configPath := viper.Get("config-path").(string)
-
+func NewJSONRepo(configPath string) *JSONRepo {
 	repo := &JSONRepo{
 		configPath: configPath,
 		configs:    []*Config{},
@@ -226,6 +223,7 @@ func copyConfig(c *Config) *Config {
 		SSH: SSHConfig{
 			User:      c.SSH.User,
 			Identity:  c.SSH.Identity,
+			Port:      c.SSH.Port,
 			Overrides: c.SSH.Overrides,
 		},
 		CIDR: c.CIDR,

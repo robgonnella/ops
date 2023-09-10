@@ -100,7 +100,7 @@ func (s *ScannerService) pollNetwork() {
 						Status: PortClosed,
 					},
 				}
-				s.handleDiscoveryResult(dr)
+				go s.handleDiscoveryResult(dr)
 			case scanner.SYNResult:
 				res := r.Payload.(*scanner.SynScanResult)
 				dr := &DiscoveryResult{
@@ -115,7 +115,7 @@ func (s *ScannerService) pollNetwork() {
 						Status: PortStatus(res.Port.Status),
 					},
 				}
-				s.handleDiscoveryResult(dr)
+				go s.handleDiscoveryResult(dr)
 			}
 		case err := <-s.errorChan:
 			s.log.Error().Err(err).Msg("discovery service encountered an error")

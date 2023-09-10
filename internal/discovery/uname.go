@@ -25,6 +25,7 @@ func NewUnameScanner(conf config.Config) *UnameScanner {
 func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details, error) {
 	user := s.conf.SSH.User
 	identity := s.conf.SSH.Identity
+	port := s.conf.SSH.Port
 
 	for _, o := range s.conf.SSH.Overrides {
 		if o.Target == ip {
@@ -35,12 +36,30 @@ func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details
 			if o.Identity != "" {
 				identity = o.Identity
 			}
+
+			if o.Port != "" {
+				port = o.Port
+			}
 		}
 	}
 
-	cmd := exec.Command("ssh", "-i", identity, user+"@"+ip, "uname -a")
+	unameCmd := exec.Command(
+		"ssh",
+		"-i",
+		identity,
+		"-p",
+		port,
+		"-o",
+		"BatchMode=yes",
+		"-o",
+		"StrictHostKeyChecking=no",
+		"-l",
+		user,
+		ip,
+		"uname -a",
+	)
 
-	unameOutput, err := cmd.Output()
+	unameOutput, err := unameCmd.Output()
 
 	if err != nil {
 		return nil, err
@@ -48,16 +67,30 @@ func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details
 
 	info := strings.Split(string(unameOutput), " ")
 
-	os := info[0]
+	operatingSystem := info[0]
 	hostname := info[1]
 
-	switch os {
+	switch operatingSystem {
 	case "Darwin":
-		os = "MacOS"
+		operatingSystem = "MacOS"
 	case "Linux":
-		cmd = exec.Command("ssh", "-i", identity, user+"@"+ip, "cat /etc/os-release")
+		osReleaseCmd := exec.Command(
+			"ssh",
+			"-i",
+			identity,
+			"-p",
+			port,
+			"-o",
+			"BatchMode=yes",
+			"-o",
+			"StrictHostKeyChecking=no",
+			"-l",
+			user,
+			ip,
+			"cat /etc/os-release",
+		)
 
-		osReleaseOutput, err := cmd.Output()
+		osReleaseOutput, err := osReleaseCmd.Output()
 
 		if err != nil {
 			return nil, err
@@ -67,13 +100,13 @@ func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details
 
 		for i, name := range osReleaseRegexp.SubexpNames() {
 			if name == "os" {
-				os = match[i]
+				operatingSystem = match[i]
 			}
 		}
 	}
 
 	return &Details{
 		Hostname: hostname,
-		OS:       os,
+		OS:       operatingSystem,
 	}, nil
 }

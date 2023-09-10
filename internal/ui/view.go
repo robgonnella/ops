@@ -368,6 +368,7 @@ func (v *view) onSSH(ip string) {
 	conf := v.appCore.Conf()
 	user := conf.SSH.User
 	identity := conf.SSH.Identity
+	port := conf.SSH.Port
 
 	for _, o := range conf.SSH.Overrides {
 		if o.Target == ip {
@@ -378,10 +379,23 @@ func (v *view) onSSH(ip string) {
 			if o.Identity != "" {
 				identity = o.Identity
 			}
+
+			if o.Port != "" {
+				port = o.Port
+			}
 		}
 	}
 
-	cmd := exec.Command("ssh", "-i", identity, user+"@"+ip)
+	cmd := exec.Command(
+		"ssh",
+		"-i",
+		identity,
+		"-p",
+		port,
+		"-l",
+		user,
+		ip,
+	)
 
 	restoreStdout()
 
