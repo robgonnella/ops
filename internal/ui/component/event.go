@@ -4,8 +4,8 @@ import (
 	"strconv"
 
 	"github.com/rivo/tview"
+	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
-	"github.com/robgonnella/ops/internal/server"
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
@@ -48,10 +48,15 @@ func (t *EventTable) Primitive() tview.Primitive {
 func (t *EventTable) UpdateTable(evt *event.Event) {
 	t.count++
 	evtType := string(evt.Type)
-	payload := evt.Payload.(*server.Server)
+
+	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
+
+	if !ok {
+		return
+	}
 
 	status := string(payload.Status)
-	ssh := string(payload.SshStatus)
+	ssh := string(payload.Port.Status)
 	hostname := payload.Hostname
 	id := payload.ID
 	ip := payload.IP

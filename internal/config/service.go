@@ -11,7 +11,7 @@ func NewConfigService(repo Repo) *ConfigService {
 }
 
 // Get returns a config by id
-func (s *ConfigService) Get(id int) (*Config, error) {
+func (s *ConfigService) Get(id string) (*Config, error) {
 	return s.repo.Get(id)
 }
 
@@ -35,6 +35,6 @@ func (s *ConfigService) Update(conf *Config) (*Config, error) {
 }
 
 // Delete deletes a config
-func (s *ConfigService) Delete(id int) error {
+func (s *ConfigService) Delete(id string) error {
 	return s.repo.Delete(id)
 }

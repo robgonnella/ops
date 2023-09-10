@@ -1,9 +1,15 @@
 package component
 
 import (
+	"bytes"
+	"net"
+	"slices"
+	"sync"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/robgonnella/ops/internal/server"
+	"github.com/robgonnella/ops/internal/discovery"
+	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/ui/key"
 	"github.com/robgonnella/ops/internal/ui/style"
 )
@@ -14,6 +20,8 @@ type ServerTable struct {
 	columnHeaders []string
 	hostIP        string
 	hostHostname  string
+	rows          [][]string
+	mux           sync.RWMutex
 }
 
 // NewServerTable returns a new instance of ServerTable
@@ -38,6 +46,8 @@ func NewServerTable(hostHostname, hostIP string, OnSSH func(ip string)) *ServerT
 		columnHeaders: columnHeaders,
 		hostIP:        hostIP,
 		hostHostname:  hostHostname,
+		rows:          [][]string{},
+		mux:           sync.RWMutex{},
 	}
 }
 
@@ -49,27 +59,77 @@ func (t *ServerTable) Primitive() tview.Primitive {
 // UpdateTable updates the table with the incoming list of servers from
 // the database. We expect these servers to always be sorted so the ordering
 // should remain relatively consistent.
-func (t *ServerTable) UpdateTable(servers []*server.Server) {
-	for rowIdx, svr := range servers {
-		status := string(svr.Status)
-		ssh := string(svr.SshStatus)
-		hostname := svr.Hostname
-		id := svr.ID
-		ip := svr.IP
-		os := svr.OS
-		you := false
+func (t *ServerTable) UpdateTable(evt *event.Event) {
+	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
 
-		if ip == t.hostIP {
-			hostname = t.hostHostname
-			you = true
+	if !ok {
+		return
+	}
+
+	status := "offline"
+
+	if payload.Status == discovery.ServerOnline {
+		status = "online"
+	}
+
+	ssh := "disabled"
+
+	if payload.Port.Status == discovery.PortOpen {
+		ssh = "enabled"
+	}
+
+	hostname := payload.Hostname
+	id := payload.ID
+	ip := payload.IP
+	os := payload.OS
+
+	row := []string{hostname, ip, id, os, ssh, status}
+
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	idx := slices.IndexFunc(t.rows, func(r []string) bool {
+		return r[2] == id
+	})
+
+	exists := idx > -1
+	isARP := evt.Type == discovery.DiscoveryArpUpdateEvent
+	isSYN := evt.Type == discovery.DiscoverySynUpdateEvent
+
+	if exists && isARP {
+		// we already have this entry no need to do anything else
+		return
+	}
+
+	if !exists && isARP {
+		t.rows = append(t.rows, row)
+	} else if exists && isSYN {
+		t.rows[idx] = row
+	} else {
+		// this should never happen
+		return
+	}
+
+	slices.SortFunc(t.rows, func(r1, r2 []string) int {
+		if isSYN && r1[4] == "enabled" && r2[4] == "disabled" {
+			return -1
 		}
 
-		row := []string{hostname, ip, id, os, ssh, status}
+		if isSYN && r1[4] == "disabled" && r2[4] == "enabled" {
+			return 1
+		}
 
+		ip1 := net.ParseIP(r1[1])
+		ip2 := net.ParseIP(r2[1])
+
+		return bytes.Compare(ip1, ip2)
+	})
+
+	t.table.Clear()
+	setTableHeaders(t.table, t.columnHeaders)
+
+	for rowIdx, row := range t.rows {
 		for col, text := range row {
-			if col == 0 && you {
-				text = text + " (you)"
-			}
 			cell := tview.NewTableCell(text)
 			cell.SetExpansion(1)
 			cell.SetAlign(tview.AlignLeft)
@@ -81,10 +141,6 @@ func (t *ServerTable) UpdateTable(servers []*server.Server) {
 
 			if text == "disabled" || text == "offline" {
 				color = style.ColorDimGrey
-			}
-
-			if you {
-				color = style.ColorOrange
 			}
 
 			cell.SetTextColor(color)

@@ -5,8 +5,13 @@ import (
 	"time"
 
 	"github.com/robgonnella/go-lanscan/scanner"
+	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
-	"github.com/robgonnella/ops/internal/server"
+)
+
+const (
+	DiscoveryArpUpdateEvent = "DISCOVERY_ARP_UPDATE"
+	DiscoverySynUpdateEvent = "DISCOVERY_SYN_UPDATE"
 )
 
 // ScannerService implements the Service interface for monitoring a network
@@ -15,9 +20,8 @@ type ScannerService struct {
 	cancel        context.CancelFunc
 	scanner       Scanner
 	detailScanner DetailScanner
-	serverService server.Service
-	resultChan    chan *scanner.SynScanResult
-	scanDone      chan bool
+	resultChan    chan *scanner.ScanResult
+	eventChan     chan *event.Event
 	errorChan     chan error
 	log           logger.Logger
 }
@@ -26,9 +30,8 @@ type ScannerService struct {
 func NewScannerService(
 	scanner Scanner,
 	detailScanner DetailScanner,
-	serverService server.Service,
-	resultChan chan *scanner.SynScanResult,
-	doneChan chan bool,
+	resultChan chan *scanner.ScanResult,
+	eventChan chan *event.Event,
 ) *ScannerService {
 	log := logger.New()
 
@@ -40,9 +43,8 @@ func NewScannerService(
 		cancel:        cancel,
 		scanner:       scanner,
 		detailScanner: detailScanner,
-		serverService: serverService,
 		resultChan:    resultChan,
-		scanDone:      doneChan,
+		eventChan:     eventChan,
 		errorChan:     make(chan error),
 		log:           log,
 	}
@@ -83,23 +85,41 @@ func (s *ScannerService) pollNetwork() {
 			ticker.Stop()
 			return
 		case r := <-s.resultChan:
-			dr := &DiscoveryResult{
-				ID:       r.MAC.String(),
-				IP:       r.IP.String(),
-				Hostname: "",
-				OS:       "",
-				Status:   server.Status(r.Status),
-				Port: Port{
-					ID:     r.Port.ID,
-					Status: PortStatus(r.Port.Status),
-				},
+			switch r.Type {
+			case scanner.ARPResult:
+				res := r.Payload.(*scanner.ArpScanResult)
+				dr := &DiscoveryResult{
+					Type:     DiscoveryArpUpdateEvent,
+					ID:       res.MAC.String(),
+					IP:       res.IP.String(),
+					Hostname: "",
+					OS:       "",
+					Status:   ServerOnline,
+					Port: Port{
+						ID:     22,
+						Status: PortClosed,
+					},
+				}
+				s.handleDiscoveryResult(dr)
+			case scanner.SYNResult:
+				res := r.Payload.(*scanner.SynScanResult)
+				dr := &DiscoveryResult{
+					Type:     DiscoverySynUpdateEvent,
+					ID:       res.MAC.String(),
+					IP:       res.IP.String(),
+					Hostname: "",
+					OS:       "",
+					Status:   ServerStatus(res.Status),
+					Port: Port{
+						ID:     res.Port.ID,
+						Status: PortStatus(res.Port.Status),
+					},
+				}
+				s.handleDiscoveryResult(dr)
 			}
-			s.handleDiscoveryResult(dr)
 		case err := <-s.errorChan:
 			s.log.Error().Err(err).Msg("discovery service encountered an error")
 			return
-		case <-s.scanDone:
-			// nothing to do here since we're polling
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
 			go func() {
@@ -114,47 +134,18 @@ func (s *ScannerService) pollNetwork() {
 // handle results found during polling
 func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 	fields := map[string]interface{}{
+		"type":      result.Type,
 		"id":        result.ID,
 		"hostname":  result.Hostname,
 		"ip":        result.IP,
 		"os":        result.OS,
 		"status":    result.Status,
-		"sshStatus": s.getSSHStatus(result),
+		"sshStatus": result.Port.Status,
 	}
 
 	s.log.Info().Fields(fields).Msg("found network device")
 
-	switch result.Status {
-	case server.StatusOnline:
-		go s.setServerToOnline(result)
-	case server.StatusOffline:
-		go s.setServerToOffline(result)
-	default:
-		s.log.Info().
-			Str("status", string(result.Status)).
-			Msg("Device detected with unimplemented status action")
-	}
-
-}
-
-// checks if port is 22 and whether the port is open or closed
-func (s *ScannerService) getSSHStatus(result *DiscoveryResult) server.SSHStatus {
-	if result.Port.ID == 22 {
-		if result.Port.Status == PortOpen {
-			return server.SSHEnabled
-		}
-
-		return server.SSHDisabled
-	}
-
-	return server.SSHDisabled
-}
-
-// makes a call to our server service to update the servers status to online
-func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
-	sshStatus := s.getSSHStatus(result)
-
-	if sshStatus == server.SSHEnabled {
+	if result.Port.ID == 22 && result.Port.Status == PortOpen {
 		s.log.Info().Str("ip", result.IP).Msg("retrieving device details")
 
 		details, err := s.detailScanner.GetServerDetails(s.ctx, result.IP)
@@ -166,7 +157,7 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 			s.log.
 				Error().Err(err).
 				Str("ip", result.IP).
-				Msg("ansible scan failed")
+				Msg("details scan failed")
 		}
 	}
 
@@ -178,28 +169,10 @@ func (s *ScannerService) setServerToOnline(result *DiscoveryResult) {
 		result.OS = "unknown"
 	}
 
-	s.log.Info().
-		Str("ip", result.IP).
-		Msg("marking device online")
-
-	err := s.serverService.AddOrUpdateServer(&server.Server{
-		ID:        result.ID,
-		Hostname:  result.Hostname,
-		IP:        result.IP,
-		OS:        result.OS,
-		Status:    result.Status,
-		SshStatus: sshStatus,
-	})
-
-	if err != nil {
-		s.log.Error().Err(err).Msg("error marking device online")
-	}
-}
-
-// makes a call to our server service to set a device to "offline"
-func (s *ScannerService) setServerToOffline(result *DiscoveryResult) {
-	s.log.Info().Str("ip", result.IP).Msg("Marking device offline")
-	if err := s.serverService.MarkServerOffline(result.IP); err != nil {
-		s.log.Error().Err(err).Msg("error marking device offline")
-	}
+	go func() {
+		s.eventChan <- &event.Event{
+			Type:    result.Type,
+			Payload: result,
+		}
+	}()
 }

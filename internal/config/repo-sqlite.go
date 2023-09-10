@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/robgonnella/ops/internal/exception"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -22,8 +23,8 @@ func NewSqliteRepo(db *gorm.DB) *SqliteRepo {
 }
 
 // Get returns a config from the db
-func (r *SqliteRepo) Get(id int) (*Config, error) {
-	if id == 0 {
+func (r *SqliteRepo) Get(id string) (*Config, error) {
+	if id == "" {
 		return nil, errors.New("config id cannot be empty")
 	}
 
@@ -73,6 +74,8 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 		return nil, errors.New("config name cannot be empty")
 	}
 
+	conf.ID = uuid.New().String()
+
 	confModel, err := configToModel(conf)
 
 	if err != nil {
@@ -91,7 +94,7 @@ func (r *SqliteRepo) Create(conf *Config) (*Config, error) {
 
 // Update updates a config in db
 func (r *SqliteRepo) Update(conf *Config) (*Config, error) {
-	if conf.ID == 0 {
+	if conf.ID == "" {
 		return nil, errors.New("config ID cannot be empty")
 	}
 
@@ -109,8 +112,8 @@ func (r *SqliteRepo) Update(conf *Config) (*Config, error) {
 }
 
 // Delete deletes a config from db
-func (r *SqliteRepo) Delete(id int) error {
-	if id == 0 {
+func (r *SqliteRepo) Delete(id string) error {
+	if id == "" {
 		return errors.New("config id cannot be empty")
 	}
 

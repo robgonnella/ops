@@ -8,12 +8,12 @@
 
 - mac
 ```bash
-brew install make go ansible libpcap git
+brew install make go libpcap git
 ```
 
 - debian
 ```bash
-sudo apt update && sudo apt install -y make golang ansible libpcap-dev git
+sudo apt update && sudo apt install -y make golang libpcap-dev git
 ```
 
 When building from source you may want to add the following lines to one of your

@@ -33,19 +33,7 @@ func setRuntTimeConfig() error {
 
 	logFile := path.Join(configDir, app_info.NAME+".log")
 
-	userCacheDir, err := os.UserCacheDir()
-
-	if err != nil {
-		return err
-	}
-
-	cacheDir := path.Join(userCacheDir, app_info.NAME)
-
-	if err := os.Mkdir(cacheDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
-		return err
-	}
-
-	dbFile := path.Join(cacheDir, app_info.NAME+".db")
+	configFile := path.Join(configDir, "config.json")
 
 	defaultSSHIdentity := path.Join(userHomeDir, ".ssh", "id_rsa")
 
@@ -54,8 +42,7 @@ func setRuntTimeConfig() error {
 	// share run-time config globally using viper
 	viper.Set("log-file", logFile)
 	viper.Set("config-dir", configDir)
-	viper.Set("cache-dir", cacheDir)
-	viper.Set("database-file", dbFile)
+	viper.Set("config-path", configFile)
 	viper.Set("default-ssh-identity", defaultSSHIdentity)
 	viper.Set("user", user)
 

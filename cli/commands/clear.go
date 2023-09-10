@@ -18,13 +18,13 @@ func clear() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := logger.New()
 
-			dbFile, ok := viper.Get("database-file").(string)
+			configFile, ok := viper.Get("config-path").(string)
 
-			if ok && dbFile != "" {
-				if err := os.Remove(dbFile); err != nil {
+			if ok && configFile != "" {
+				if err := os.RemoveAll(configFile); err != nil {
 					return err
 				}
-				log.Info().Msg("removed database file")
+				log.Info().Msg("removed config file")
 			}
 
 			logFile, ok := viper.Get("log-file").(string)

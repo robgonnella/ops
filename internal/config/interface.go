@@ -16,17 +16,21 @@ type SSHOverride struct {
 
 // SSHConfig represents the config needed to ssh to servers
 type SSHConfig struct {
-	User      string
-	Identity  string
-	Overrides []SSHOverride
+	User      string        `json:"user"`
+	Identity  string        `json:"identity"`
+	Overrides []SSHOverride `json:"overrides"`
 }
 
 // Config represents the data structure of our user provided json configuration
 type Config struct {
-	ID   int
-	Name string
-	SSH  SSHConfig
-	CIDR string
+	ID   string    `json:"id"`
+	Name string    `json:"name"`
+	SSH  SSHConfig `json:"ssh"`
+	CIDR string    `json:"cidr"`
+}
+
+type Configs struct {
+	Configs []*Config `json:"configs"`
 }
 
 // SSHConfigModel represents the ssh config stored in the database
@@ -38,7 +42,7 @@ type SSHConfigModel struct {
 
 // ConfigModel represents the config stored in the database
 type ConfigModel struct {
-	ID   int            `gorm:"primaryKey"`
+	ID   string         `gorm:"primaryKey"`
 	Name string         `gorm:"uniqueIndex"`
 	SSH  SSHConfigModel `gorm:"embedded"`
 	CIDR string         `gorm:"column:cidr"`
@@ -46,20 +50,20 @@ type ConfigModel struct {
 
 // Repo interface representing access to stored configs
 type Repo interface {
-	Get(id int) (*Config, error)
+	Get(id string) (*Config, error)
 	GetAll() ([]*Config, error)
 	GetByCIDR(cidr string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
-	Delete(id int) error
+	Delete(id string) error
 }
 
 // Service interface for manipulating configurations
 type Service interface {
-	Get(id int) (*Config, error)
+	Get(id string) (*Config, error)
 	GetAll() ([]*Config, error)
 	GetByCIDR(cidr string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
-	Delete(id int) error
+	Delete(id string) error
 }

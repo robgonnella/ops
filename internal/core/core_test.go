@@ -15,8 +15,6 @@ import (
 	"github.com/robgonnella/ops/internal/event"
 	mock_config "github.com/robgonnella/ops/internal/mock/config"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
-	mock_server "github.com/robgonnella/ops/internal/mock/server"
-	"github.com/robgonnella/ops/internal/server"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,9 +26,8 @@ func TestCore(t *testing.T) {
 	mockScanner := mock_discovery.NewMockScanner(ctrl)
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
-	mockServerService := mock_server.NewMockService(ctrl)
-	resultChan := make(chan *scanner.SynScanResult)
-	doneChan := make(chan bool)
+	resultChan := make(chan *scanner.ScanResult)
+	eventChan := make(chan *event.Event)
 
 	networkInfo := &network.NetworkInfo{
 		Interface: &net.Interface{},
@@ -41,13 +38,12 @@ func TestCore(t *testing.T) {
 	discoveryService := discovery.NewScannerService(
 		mockScanner,
 		mockDetailsScanner,
-		mockServerService,
 		resultChan,
-		doneChan,
+		eventChan,
 	)
 
 	conf := config.Config{
-		ID:   1,
+		ID:   "1",
 		Name: "default",
 		SSH: config.SSHConfig{
 			User:     "user",
@@ -60,8 +56,8 @@ func TestCore(t *testing.T) {
 		networkInfo,
 		&conf,
 		mockConfig,
-		mockServerService,
 		discoveryService,
+		eventChan,
 	)
 
 	t.Run("returns config", func(st *testing.T) {
@@ -74,7 +70,7 @@ func TestCore(t *testing.T) {
 		defer coreService.UpdateConfig(conf)
 
 		newConf := config.Config{
-			ID:   1,
+			ID:   "1",
 			Name: "new",
 			SSH: config.SSHConfig{
 				User:     "new-user",
@@ -96,7 +92,7 @@ func TestCore(t *testing.T) {
 		defer coreService.SetConfig(conf.ID)
 
 		anotherConf := config.Config{
-			ID:   2,
+			ID:   "2",
 			Name: "other-conf",
 			SSH: config.SSHConfig{
 				User:     "other-user",
@@ -134,9 +130,9 @@ func TestCore(t *testing.T) {
 	})
 
 	t.Run("deletes config", func(st *testing.T) {
-		mockConfig.EXPECT().Delete(10).Return(nil)
+		mockConfig.EXPECT().Delete("10").Return(nil)
 
-		err := coreService.DeleteConfig(10)
+		err := coreService.DeleteConfig("10")
 
 		assert.NoError(st, err)
 	})
@@ -178,21 +174,12 @@ func TestCore(t *testing.T) {
 		coreService.RemoveEventListener(id)
 	})
 
-	t.Run("registers and removes server listener", func(st *testing.T) {
-		serverChan := make(chan []*server.Server)
-
-		id := coreService.RegisterServerPollListener(serverChan)
-
-		assert.Equal(st, 2, id)
-
-		coreService.RemoveServerPollListener(id)
-	})
-
 	t.Run("monitors network", func(st *testing.T) {
 		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
-		synResults := []*scanner.SynScanResult{
-			{
+		synResults := []*scanner.ScanResult{{
+			Type: scanner.SYNResult,
+			Payload: &scanner.SynScanResult{
 				MAC:    mac,
 				IP:     net.ParseIP("127.0.0.1"),
 				Status: scanner.StatusOnline,
@@ -202,32 +189,15 @@ func TestCore(t *testing.T) {
 					Status:  scanner.PortOpen,
 				},
 			},
-		}
+		}}
 
 		details := &discovery.Details{
 			Hostname: "hostname",
 			OS:       "os",
 		}
 
-		serverToUpdate := &server.Server{
-			ID:        synResults[0].MAC.String(),
-			Hostname:  details.Hostname,
-			IP:        synResults[0].IP.String(),
-			OS:        details.OS,
-			Status:    server.Status(synResults[0].Status),
-			SshStatus: server.SSHEnabled,
-		}
-
 		wg := sync.WaitGroup{}
-		wg.Add(5)
-
-		mockServerService.EXPECT().StreamEvents(gomock.Any()).Return(1)
-
-		mockServerService.EXPECT().
-			GetAllServersInNetwork(conf.CIDR).
-			Do(func(string) {
-				wg.Done()
-			})
+		wg.Add(2)
 
 		mockScanner.EXPECT().Scan().DoAndReturn(func() error {
 			defer wg.Done()
@@ -248,19 +218,6 @@ func TestCore(t *testing.T) {
 				defer wg.Done()
 				return details, nil
 			})
-
-		mockServerService.EXPECT().AddOrUpdateServer(serverToUpdate).Do(
-			func(*server.Server) {
-				coreService.Stop()
-				wg.Done()
-			},
-		)
-
-		mockScanner.EXPECT().Stop()
-
-		mockServerService.EXPECT().StopStream(1).Do(func(int) {
-			wg.Done()
-		})
 
 		go coreService.Monitor()
 

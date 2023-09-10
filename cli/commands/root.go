@@ -51,7 +51,6 @@ func Root(props *CommandProps) *cobra.Command {
 
 	cmd.AddCommand(clear())
 	cmd.AddCommand(version())
-	cmd.AddCommand(info())
 
 	return cmd
 }

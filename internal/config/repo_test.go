@@ -44,7 +44,7 @@ func TestConfigSqliteRepo(t *testing.T) {
 	repo := config.NewSqliteRepo(db)
 
 	t.Run("returns record not found error", func(st *testing.T) {
-		_, err := repo.Get(10)
+		_, err := repo.Get("10")
 
 		assert.Error(st, err)
 		assert.Equal(st, exception.ErrRecordNotFound, err)
