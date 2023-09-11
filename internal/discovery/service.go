@@ -94,6 +94,7 @@ func (s *ScannerService) pollNetwork() {
 					IP:       res.IP.String(),
 					Hostname: "",
 					OS:       "",
+					Vendor:   res.Vendor,
 					Status:   ServerOnline,
 					Port: Port{
 						ID:     22,
@@ -109,6 +110,7 @@ func (s *ScannerService) pollNetwork() {
 					IP:       res.IP.String(),
 					Hostname: "",
 					OS:       "",
+					Vendor:   "",
 					Status:   ServerStatus(res.Status),
 					Port: Port{
 						ID:     res.Port.ID,

@@ -1,8 +1,6 @@
 package component
 
 import (
-	"strconv"
-
 	"github.com/rivo/tview"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
@@ -20,12 +18,12 @@ type EventTable struct {
 // NewEventTable returns a new instance of EventTable
 func NewEventTable() *EventTable {
 	columnHeaders := []string{
-		"NO",
 		"EVENT TYPE",
 		"HOSTNAME",
 		"IP",
 		"ID",
 		"OS",
+		"VENDOR",
 		"SSH",
 		"STATUS",
 	}
@@ -61,10 +59,9 @@ func (t *EventTable) UpdateTable(evt *event.Event) {
 	id := payload.ID
 	ip := payload.IP
 	os := payload.OS
+	vendor := payload.Vendor
 
-	countStr := strconv.Itoa(int(t.count))
-
-	row := []string{countStr, evtType, hostname, ip, id, os, ssh, status}
+	row := []string{evtType, hostname, ip, id, os, vendor, ssh, status}
 	rowIdx := t.table.GetRowCount()
 
 	for col, text := range row {

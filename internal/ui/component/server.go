@@ -26,7 +26,7 @@ type ServerTable struct {
 
 // NewServerTable returns a new instance of ServerTable
 func NewServerTable(hostHostname, hostIP string, OnSSH func(ip string)) *ServerTable {
-	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "SSH", "STATUS"}
+	columnHeaders := []string{"HOSTNAME", "IP", "ID", "OS", "VENDOR", "SSH", "STATUS"}
 
 	table := createTable("servers", columnHeaders)
 
@@ -82,8 +82,9 @@ func (t *ServerTable) UpdateTable(evt *event.Event) {
 	id := payload.ID
 	ip := payload.IP
 	os := payload.OS
+	vendor := payload.Vendor
 
-	row := []string{hostname, ip, id, os, ssh, status}
+	row := []string{hostname, ip, id, os, vendor, ssh, status}
 
 	t.mux.Lock()
 	defer t.mux.Unlock()
@@ -104,6 +105,9 @@ func (t *ServerTable) UpdateTable(evt *event.Event) {
 	if !exists && isARP {
 		t.rows = append(t.rows, row)
 	} else if exists && isSYN {
+		r := t.rows[idx]
+		// keep previous vendor as syn results don't have vendor
+		row[4] = r[4]
 		t.rows[idx] = row
 	} else {
 		// this should never happen
@@ -111,11 +115,11 @@ func (t *ServerTable) UpdateTable(evt *event.Event) {
 	}
 
 	slices.SortFunc(t.rows, func(r1, r2 []string) int {
-		if isSYN && r1[4] == "enabled" && r2[4] == "disabled" {
+		if isSYN && r1[5] == "enabled" && r2[5] == "disabled" {
 			return -1
 		}
 
-		if isSYN && r1[4] == "disabled" && r2[4] == "enabled" {
+		if isSYN && r1[5] == "disabled" && r2[5] == "enabled" {
 			return 1
 		}
 

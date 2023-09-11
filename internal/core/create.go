@@ -62,6 +62,7 @@ func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
 		[]string{"22"},
 		54321,
 		scanResults,
+		scanner.WithVendorInfo(true),
 	)
 
 	detailScanner := discovery.NewUnameScanner(*conf)
