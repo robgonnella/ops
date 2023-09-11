@@ -33,6 +33,7 @@ type DiscoveryResult struct {
 	Hostname string
 	IP       string
 	OS       string
+	Vendor   string
 	Status   ServerStatus
 	Port     Port
 }
