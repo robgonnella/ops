@@ -27,7 +27,7 @@ func setRuntTimeConfig() error {
 
 	configDir := path.Join(userHomeDir, ".config", app_info.NAME)
 
-	if err := os.Mkdir(configDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
+	if err := os.MkdirAll(configDir, 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 
