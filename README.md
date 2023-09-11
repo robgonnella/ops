@@ -93,7 +93,7 @@ sudo ops
 - clear database file and log file
 
 ```bash
-ops clear
+sudo ops clear
 ```
 
 - show help / usage
