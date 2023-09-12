@@ -25,6 +25,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: "172.2.2.2/32",
 		}
@@ -43,6 +44,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: "172.2.2.2/32",
 		}
@@ -52,6 +54,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: "172.2.2.3/32",
 		}
@@ -72,6 +75,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: "172.2.2.2/32",
 		}
@@ -90,6 +94,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: "172.2.2.2/32",
 		}
@@ -120,6 +125,7 @@ func TestConfigService(t *testing.T) {
 			SSH: config.SSHConfig{
 				User:     "user",
 				Identity: "identity",
+				Port:     "22",
 			},
 			CIDR: cidr,
 		}

@@ -22,33 +22,16 @@ func NewUnameScanner(conf config.Config) *UnameScanner {
 }
 
 // GetServerDetails returns server details using ssh and "uname -a" command
-func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details, error) {
+func (s UnameScanner) GetServerDetails(ctx context.Context, ip, sshPort string) (*Details, error) {
 	user := s.conf.SSH.User
 	identity := s.conf.SSH.Identity
-	port := s.conf.SSH.Port
-
-	for _, o := range s.conf.SSH.Overrides {
-		if o.Target == ip {
-			if o.User != "" {
-				user = o.User
-			}
-
-			if o.Identity != "" {
-				identity = o.Identity
-			}
-
-			if o.Port != "" {
-				port = o.Port
-			}
-		}
-	}
 
 	unameCmd := exec.Command(
 		"ssh",
 		"-i",
 		identity,
 		"-p",
-		port,
+		sshPort,
 		"-o",
 		"BatchMode=yes",
 		"-o",
@@ -79,7 +62,7 @@ func (s UnameScanner) GetServerDetails(ctx context.Context, ip string) (*Details
 			"-i",
 			identity,
 			"-p",
-			port,
+			sshPort,
 			"-o",
 			"BatchMode=yes",
 			"-o",

@@ -36,18 +36,18 @@ func (m *MockDetailScanner) EXPECT() *MockDetailScannerMockRecorder {
 }
 
 // GetServerDetails mocks base method.
-func (m *MockDetailScanner) GetServerDetails(arg0 context.Context, arg1 string) (*discovery.Details, error) {
+func (m *MockDetailScanner) GetServerDetails(arg0 context.Context, arg1, arg2 string) (*discovery.Details, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetServerDetails", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetServerDetails", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*discovery.Details)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetServerDetails indicates an expected call of GetServerDetails.
-func (mr *MockDetailScannerMockRecorder) GetServerDetails(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDetailScannerMockRecorder) GetServerDetails(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServerDetails", reflect.TypeOf((*MockDetailScanner)(nil).GetServerDetails), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServerDetails", reflect.TypeOf((*MockDetailScanner)(nil).GetServerDetails), arg0, arg1, arg2)
 }
 
 // MockScanner is a mock of Scanner interface.

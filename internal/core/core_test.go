@@ -35,22 +35,24 @@ func TestCore(t *testing.T) {
 		Cidr:      "0.0.0.0/0",
 	}
 
-	discoveryService := discovery.NewScannerService(
-		mockScanner,
-		mockDetailsScanner,
-		resultChan,
-		eventChan,
-	)
-
 	conf := config.Config{
 		ID:   "1",
 		Name: "default",
 		SSH: config.SSHConfig{
 			User:     "user",
 			Identity: "identity",
+			Port:     "22",
 		},
 		CIDR: "172.100.1.1/24",
 	}
+
+	discoveryService := discovery.NewScannerService(
+		conf,
+		mockScanner,
+		mockDetailsScanner,
+		resultChan,
+		eventChan,
+	)
 
 	coreService := core.New(
 		networkInfo,
@@ -210,10 +212,11 @@ func TestCore(t *testing.T) {
 		})
 
 		mockDetailsScanner.EXPECT().
-			GetServerDetails(gomock.Any(), "127.0.0.1").
+			GetServerDetails(gomock.Any(), "127.0.0.1", conf.SSH.Port).
 			DoAndReturn(func(
 				ctx context.Context,
 				ip string,
+				port string,
 			) (*discovery.Details, error) {
 				defer wg.Done()
 				return details, nil
