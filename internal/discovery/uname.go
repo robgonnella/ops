@@ -26,6 +26,18 @@ func (s UnameScanner) GetServerDetails(ctx context.Context, ip, sshPort string) 
 	user := s.conf.SSH.User
 	identity := s.conf.SSH.Identity
 
+	for _, o := range s.conf.SSH.Overrides {
+		if o.Target == ip {
+			if o.User != "" {
+				user = o.User
+			}
+
+			if o.Identity != "" {
+				identity = o.Identity
+			}
+		}
+	}
+
 	unameCmd := exec.Command(
 		"ssh",
 		"-i",
