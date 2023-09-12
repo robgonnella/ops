@@ -97,8 +97,8 @@ func (s *ScannerService) pollNetwork() {
 					Type:     DiscoveryArpUpdateEvent,
 					ID:       res.MAC.String(),
 					IP:       res.IP.String(),
-					Hostname: "",
-					OS:       "",
+					Hostname: "Unknown",
+					OS:       "Unknown",
 					Vendor:   res.Vendor,
 					Status:   ServerOnline,
 					Port: Port{
@@ -106,7 +106,7 @@ func (s *ScannerService) pollNetwork() {
 						Status: PortClosed,
 					},
 				}
-				go s.handleDiscoveryResult(dr)
+				go s.handleArpDiscoveryResult(dr)
 			case scanner.SYNResult:
 				res := r.Payload.(*scanner.SynScanResult)
 				dr := &DiscoveryResult{
@@ -122,7 +122,7 @@ func (s *ScannerService) pollNetwork() {
 						Status: PortStatus(res.Port.Status),
 					},
 				}
-				go s.handleDiscoveryResult(dr)
+				go s.handleSynDiscoveryResult(dr)
 			}
 		case err := <-s.errorChan:
 			s.log.Error().Err(err).Msg("discovery service encountered an error")
@@ -138,7 +138,7 @@ func (s *ScannerService) pollNetwork() {
 	}
 }
 
-func (s *ScannerService) getSSHPort(result *DiscoveryResult) *string {
+func (s *ScannerService) getConfiguredSSHPort(result *DiscoveryResult) *string {
 	resultStrPort := strconv.Itoa(int(result.Port.ID))
 	sshPort := s.conf.SSH.Port
 
@@ -158,8 +158,36 @@ func (s *ScannerService) getSSHPort(result *DiscoveryResult) *string {
 	return &sshPort
 }
 
+func (s *ScannerService) handleArpDiscoveryResult(result *DiscoveryResult) {
+	if result.Type != DiscoveryArpUpdateEvent {
+		return
+	}
+
+	fields := map[string]interface{}{
+		"type":     result.Type,
+		"id":       result.ID,
+		"hostname": result.Hostname,
+		"ip":       result.IP,
+		"os":       result.OS,
+		"status":   result.Status,
+	}
+
+	s.log.Info().Fields(fields).Msg("found network device")
+
+	go func() {
+		s.eventChan <- &event.Event{
+			Type:    result.Type,
+			Payload: result,
+		}
+	}()
+}
+
 // handle results found during polling
-func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
+func (s *ScannerService) handleSynDiscoveryResult(result *DiscoveryResult) {
+	if result.Type != DiscoverySynUpdateEvent {
+		return
+	}
+
 	fields := map[string]interface{}{
 		"type":      result.Type,
 		"id":        result.ID,
@@ -167,12 +195,13 @@ func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 		"ip":        result.IP,
 		"os":        result.OS,
 		"status":    result.Status,
+		"sshPort":   result.Port.ID,
 		"sshStatus": result.Port.Status,
 	}
 
 	s.log.Info().Fields(fields).Msg("found network device")
 
-	sshPort := s.getSSHPort(result)
+	sshPort := s.getConfiguredSSHPort(result)
 
 	if sshPort == nil {
 		s.log.Info().Fields(fields).Msg("ignoring non-ssh port result")
@@ -198,11 +227,11 @@ func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 	}
 
 	if result.Hostname == "" {
-		result.Hostname = "unknown"
+		result.Hostname = "Unknown"
 	}
 
 	if result.OS == "" {
-		result.OS = "unknown"
+		result.OS = "Unknown"
 	}
 
 	go func() {
