@@ -1,9 +1,5 @@
 package config
 
-import (
-	"gorm.io/datatypes"
-)
-
 //go:generate mockgen -destination=../mock/config/mock_config.go -package=mock_config . Repo,Service
 
 // SSHOverride represents the config needed to
@@ -33,21 +29,6 @@ type Config struct {
 
 type Configs struct {
 	Configs []*Config `json:"configs"`
-}
-
-// SSHConfigModel represents the ssh config stored in the database
-type SSHConfigModel struct {
-	User      string
-	Identity  string
-	Overrides datatypes.JSON
-}
-
-// ConfigModel represents the config stored in the database
-type ConfigModel struct {
-	ID   string         `gorm:"primaryKey"`
-	Name string         `gorm:"uniqueIndex"`
-	SSH  SSHConfigModel `gorm:"embedded"`
-	CIDR string         `gorm:"column:cidr"`
 }
 
 // Repo interface representing access to stored configs

@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/robgonnella/go-lanscan/scanner"
+	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
@@ -18,6 +19,17 @@ func TestDiscoveryService(t *testing.T) {
 
 	defer ctrl.Finish()
 
+	conf := config.Config{
+		ID:   "1",
+		Name: "default",
+		SSH: config.SSHConfig{
+			User:     "user",
+			Identity: "identity",
+			Port:     "22",
+		},
+		CIDR: "172.100.1.1/24",
+	}
+
 	t.Run("monitors network for offline servers", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
@@ -25,6 +37,7 @@ func TestDiscoveryService(t *testing.T) {
 		eventChan := make(chan *event.Event)
 
 		service := discovery.NewScannerService(
+			conf,
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
@@ -84,6 +97,7 @@ func TestDiscoveryService(t *testing.T) {
 		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
 		service := discovery.NewScannerService(
+			conf,
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
@@ -142,6 +156,7 @@ func TestDiscoveryService(t *testing.T) {
 		mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 
 		service := discovery.NewScannerService(
+			conf,
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
@@ -178,7 +193,7 @@ func TestDiscoveryService(t *testing.T) {
 			return nil
 		})
 		mockScanner.EXPECT().Stop()
-		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), resultPayload.IP.String()).Return(expectedDetails, nil)
+		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), resultPayload.IP.String(), conf.SSH.Port).Return(expectedDetails, nil)
 
 		go service.MonitorNetwork()
 

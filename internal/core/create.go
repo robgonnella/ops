@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/robgonnella/go-lanscan/network"
@@ -56,10 +57,18 @@ func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
 
 	scanResults := make(chan *scanner.ScanResult)
 
+	ports := []string{conf.SSH.Port}
+
+	for _, c := range conf.SSH.Overrides {
+		if idx := slices.Index(ports, c.Port); idx == -1 {
+			ports = append(ports, c.Port)
+		}
+	}
+
 	netScanner := scanner.NewFullScanner(
 		networkInfo,
 		[]string{},
-		[]string{"22"},
+		ports,
 		54321,
 		scanResults,
 		scanner.WithVendorInfo(true),
@@ -70,6 +79,7 @@ func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
 	eventChan := make(chan *event.Event)
 
 	scannerService := discovery.NewScannerService(
+		*conf,
 		netScanner,
 		detailScanner,
 		scanResults,

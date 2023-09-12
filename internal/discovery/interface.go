@@ -8,7 +8,7 @@ import (
 
 // DetailScanner interface for gathering more details about a device
 type DetailScanner interface {
-	GetServerDetails(ctx context.Context, ip string) (*Details, error)
+	GetServerDetails(ctx context.Context, ip, sshPort string) (*Details, error)
 }
 
 // Scanner interface for scanning a network for devices

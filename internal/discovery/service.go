@@ -2,9 +2,11 @@ package discovery
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/robgonnella/go-lanscan/scanner"
+	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 )
@@ -18,6 +20,7 @@ const (
 type ScannerService struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
+	conf          config.Config
 	scanner       Scanner
 	detailScanner DetailScanner
 	resultChan    chan *scanner.ScanResult
@@ -28,6 +31,7 @@ type ScannerService struct {
 
 // NewScannerService returns a new instance of ScannerService
 func NewScannerService(
+	conf config.Config,
 	scanner Scanner,
 	detailScanner DetailScanner,
 	resultChan chan *scanner.ScanResult,
@@ -41,6 +45,7 @@ func NewScannerService(
 	return &ScannerService{
 		ctx:           ctxWithCancel,
 		cancel:        cancel,
+		conf:          conf,
 		scanner:       scanner,
 		detailScanner: detailScanner,
 		resultChan:    resultChan,
@@ -133,6 +138,26 @@ func (s *ScannerService) pollNetwork() {
 	}
 }
 
+func (s *ScannerService) getSSHPort(result *DiscoveryResult) *string {
+	resultStrPort := strconv.Itoa(int(result.Port.ID))
+	sshPort := s.conf.SSH.Port
+
+	for _, o := range s.conf.SSH.Overrides {
+		if result.IP == o.Target {
+			if o.Port != "" {
+				sshPort = o.Port
+			}
+			break
+		}
+	}
+
+	if resultStrPort != sshPort {
+		return nil
+	}
+
+	return &sshPort
+}
+
 // handle results found during polling
 func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 	fields := map[string]interface{}{
@@ -147,10 +172,19 @@ func (s *ScannerService) handleDiscoveryResult(result *DiscoveryResult) {
 
 	s.log.Info().Fields(fields).Msg("found network device")
 
-	if result.Port.ID == 22 && result.Port.Status == PortOpen {
-		s.log.Info().Str("ip", result.IP).Msg("retrieving device details")
+	sshPort := s.getSSHPort(result)
 
-		details, err := s.detailScanner.GetServerDetails(s.ctx, result.IP)
+	if sshPort == nil {
+		s.log.Info().Fields(fields).Msg("ignoring non-ssh port result")
+		return
+	}
+
+	if result.Port.Status == PortOpen {
+		details, err := s.detailScanner.GetServerDetails(
+			s.ctx,
+			result.IP,
+			*sshPort,
+		)
 
 		if err == nil {
 			result.Hostname = details.Hostname
