@@ -90,7 +90,7 @@ will fail to start.
 sudo ops
 ```
 
-- clear database file and log file
+- clear config file and log file
 
 ```bash
 sudo ops clear

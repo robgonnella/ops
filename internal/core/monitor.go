@@ -12,7 +12,12 @@ func (c *Core) Monitor() error {
 
 	// Start network scanner
 	go func() {
-		c.discovery.MonitorNetwork()
+		if err := c.discovery.MonitorNetwork(); err != nil {
+			// bail with error
+			c.errorChan <- err
+			return
+		}
+
 		// bail if network monitoring stops
 		done <- true
 	}()

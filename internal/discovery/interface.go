@@ -19,6 +19,6 @@ type Scanner interface {
 
 // Service interface for monitoring a network
 type Service interface {
-	MonitorNetwork()
+	MonitorNetwork() error
 	Stop()
 }

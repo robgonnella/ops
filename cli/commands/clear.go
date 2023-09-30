@@ -9,12 +9,12 @@ import (
 )
 
 /**
- * Command to remove database and log files
+ * Command to remove config and log files
  */
 func clear() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clear",
-		Short: "Clears database and log files",
+		Short: "Clears config and log files",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := logger.New()
 

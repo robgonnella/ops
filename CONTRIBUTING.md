@@ -83,7 +83,7 @@ sudo go run main.go
 sudo go run main.go --debug
 ```
 
-- clear database file and log file
+- clear config file and log file
 
 ```bash
 ./build/ops clear

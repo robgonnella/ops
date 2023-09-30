@@ -11,7 +11,7 @@ import (
 	"github.com/robgonnella/ops/internal/logger"
 )
 
-// EventListener represents a registered listener for database events
+// EventListener represents a registered listener for events
 type EventListener struct {
 	id      int
 	channel chan *event.Event
@@ -80,7 +80,7 @@ func (c *Core) NetworkInfo() network.NetworkInfo {
 	return *c.networkInfo
 }
 
-// CreateConfig creates a new config in the database
+// CreateConfig creates a new config
 func (c *Core) CreateConfig(conf config.Config) error {
 	_, err := c.configService.Create(&conf)
 
@@ -91,7 +91,7 @@ func (c *Core) CreateConfig(conf config.Config) error {
 	return nil
 }
 
-// UpdateConfig updates an existing config in the database
+// UpdateConfig updates an existing config
 func (c *Core) UpdateConfig(conf config.Config) error {
 	updated, err := c.configService.Update(&conf)
 
@@ -128,15 +128,20 @@ func (c *Core) GetConfigs() ([]*config.Config, error) {
 }
 
 // StartDaemon starts the network monitoring processes in a goroutine
-func (c *Core) StartDaemon() {
+func (c *Core) StartDaemon(errorReporter chan error) {
 	go func() {
 		if err := c.Monitor(); err != nil {
-			c.errorChan <- err
+			go func() {
+				c.errorChan <- err
+			}()
+			go func() {
+				errorReporter <- err
+			}()
 		}
 	}()
 }
 
-// RegisterEventListener registers a channel as a listener for database events
+// RegisterEventListener registers a channel as a listener for events
 func (c *Core) RegisterEventListener(channel chan *event.Event) int {
 	c.mux.Lock()
 	defer c.mux.Unlock()

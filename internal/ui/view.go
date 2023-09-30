@@ -290,6 +290,31 @@ func (v *view) dismissErrorModal() {
 	v.app.SetRoot(v.root, true)
 }
 
+func (v *view) showFatalErrorModal(err error) {
+	dismiss := func() {
+		v.dismissFatalErrorModal(err)
+	}
+
+	buttons := []component.ModalButton{
+		{
+			Label:   "Exit",
+			OnClick: dismiss,
+		},
+	}
+
+	errorModal := component.NewModal(
+		err.Error(),
+		buttons,
+	)
+
+	v.app.SetRoot(errorModal.Primitive(), false)
+}
+
+func (v *view) dismissFatalErrorModal(err error) {
+	v.app.SetRoot(v.root, true)
+	v.stop()
+}
+
 // binds global key handlers
 func (v *view) bindKeys() {
 	v.app.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
@@ -338,7 +363,7 @@ func (v *view) focus(name string) {
 
 		if err != nil {
 			v.log.Error().Err(err).Msg("")
-			v.showErrorModal("Failed to retrieve configurations from database")
+			v.showErrorModal("Failed to retrieve configurations")
 			return
 		}
 
@@ -415,7 +440,7 @@ func (v *view) onSSH(ip string) {
 	v.restart()
 }
 
-// handle incoming database events
+// handle incoming events
 func (v *view) processBackgroundEventUpdates() {
 	go func() {
 		for {
@@ -521,6 +546,12 @@ func (v *view) run() error {
 		v.appCore.RegisterEventListener(v.serverUpdateChan),
 	)
 	v.processBackgroundEventUpdates()
-	v.appCore.StartDaemon()
+	errorChan := make(chan error)
+	v.appCore.StartDaemon(errorChan)
+	go func() {
+		err := <-errorChan
+		v.showFatalErrorModal(err)
+		v.app.Draw()
+	}()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
 }

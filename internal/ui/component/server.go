@@ -56,9 +56,7 @@ func (t *ServerTable) Primitive() tview.Primitive {
 	return t.table
 }
 
-// UpdateTable updates the table with the incoming list of servers from
-// the database. We expect these servers to always be sorted so the ordering
-// should remain relatively consistent.
+// UpdateTable updates the table with the incoming server from the event
 func (t *ServerTable) UpdateTable(evt *event.Event) {
 	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
 

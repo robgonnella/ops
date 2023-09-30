@@ -85,9 +85,7 @@ func (u *UI) Launch(debug bool) error {
 			)
 
 			if err != nil {
-				log.Error().Err(err).Msg("")
-				log.Info().Msg("disabling logs")
-				logger.SetGlobalLevel(zerolog.Disabled)
+				log.Fatal().Err(err).Msg("failed to open log file")
 			} else {
 				logger.SetGlobalLogFile(file)
 				logger.SetWithCaller()
