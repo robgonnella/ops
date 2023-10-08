@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/robgonnella/go-lanscan/network"
+	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/rs/zerolog"

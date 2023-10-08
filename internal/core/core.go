@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/robgonnella/go-lanscan/network"
+	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"

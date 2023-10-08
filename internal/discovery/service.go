@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/robgonnella/go-lanscan/scanner"
+	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
