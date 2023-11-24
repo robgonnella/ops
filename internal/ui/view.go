@@ -88,13 +88,13 @@ func (v *view) initialize(
 	v.pages = tview.NewPages()
 
 	v.header = component.NewHeader(
-		netInfo.UserIP.String(),
+		netInfo.UserIP().String(),
 		v.appCore.Conf().CIDR,
 		v.onActionSubmit,
 	)
 	v.serverTable = component.NewServerTable(
-		netInfo.Hostname,
-		netInfo.UserIP.String(),
+		netInfo.Hostname(),
+		netInfo.UserIP().String(),
 		v.onSSH,
 	)
 	v.eventTable = component.NewEventTable()
@@ -499,7 +499,7 @@ func (v *view) restart(options ...viewOption) {
 
 	conf := v.appCore.Conf()
 
-	netInfo, err := network.GetNetworkInfo()
+	netInfo, err := network.NewDefaultNetwork()
 
 	if err != nil {
 		v.log.Fatal().Err(err).Msg("failed to get default network info")

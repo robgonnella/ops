@@ -42,7 +42,7 @@ func NewUI() *UI {
 func (u *UI) Launch(debug bool) error {
 	log := logger.New()
 
-	networkInfo, err := network.GetNetworkInfo()
+	networkInfo, err := network.NewDefaultNetwork()
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to get default network info")

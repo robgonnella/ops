@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/robgonnella/go-lanscan/pkg/network"
+	"github.com/robgonnella/go-lanscan/pkg/oui"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
@@ -17,7 +18,7 @@ import (
 )
 
 // getDefaultConfig creates and returns a default configuration
-func getDefaultConfig(networkInfo *network.NetworkInfo) *config.Config {
+func getDefaultConfig(networkInfo network.Network) *config.Config {
 	user := viper.Get("user").(string)
 	identity := viper.Get("default-ssh-identity").(string)
 	seed := time.Now().UTC().UnixNano()
@@ -31,17 +32,17 @@ func getDefaultConfig(networkInfo *network.NetworkInfo) *config.Config {
 			Port:      "22",
 			Overrides: []config.SSHOverride{},
 		},
-		CIDR: networkInfo.Cidr,
+		CIDR: networkInfo.Cidr(),
 	}
 }
 
 // CreateNewAppCore creates and returns a new instance of *core.Core
-func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
+func CreateNewAppCore(networkInfo network.Network) (*Core, error) {
 	configPath := viper.Get("config-path").(string)
 	configRepo := config.NewJSONRepo(configPath)
 	configService := config.NewConfigService(configRepo)
 
-	conf, err := configService.GetByCIDR(networkInfo.Cidr)
+	conf, err := configService.GetByCIDR(networkInfo.Cidr())
 
 	if err != nil {
 		if errors.Is(err, exception.ErrRecordNotFound) {
@@ -65,13 +66,19 @@ func CreateNewAppCore(networkInfo *network.NetworkInfo) (*Core, error) {
 		}
 	}
 
+	vendorRepo, err := oui.GetDefaultVendorRepo()
+
+	if err != nil {
+		return nil, err
+	}
+
 	netScanner := scanner.NewFullScanner(
 		networkInfo,
 		[]string{},
 		ports,
 		54321,
 		scanResults,
-		scanner.WithVendorInfo(true),
+		scanner.WithVendorInfo(vendorRepo),
 	)
 
 	detailScanner := discovery.NewUnameScanner(*conf)
