@@ -23,7 +23,7 @@ type Core struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	conf           *config.Config
-	networkInfo    *network.NetworkInfo
+	networkInfo    network.Network
 	configService  config.Service
 	discovery      discovery.Service
 	log            logger.Logger
@@ -36,7 +36,7 @@ type Core struct {
 
 // New returns new core module for given configuration
 func New(
-	networkInfo *network.NetworkInfo,
+	networkInfo network.Network,
 	conf *config.Config,
 	configService config.Service,
 	discovery discovery.Service,
@@ -76,8 +76,8 @@ func (c *Core) Conf() config.Config {
 	return *c.conf
 }
 
-func (c *Core) NetworkInfo() network.NetworkInfo {
-	return *c.networkInfo
+func (c *Core) NetworkInfo() network.Network {
+	return c.networkInfo
 }
 
 // CreateConfig creates a new config

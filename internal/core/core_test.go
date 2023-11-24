@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
@@ -17,6 +16,48 @@ import (
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	"github.com/stretchr/testify/assert"
 )
+
+type mockNetwork struct {
+	iface    *net.Interface
+	ipnet    *net.IPNet
+	userIP   net.IP
+	gateway  net.IP
+	cidr     string
+	hostname string
+}
+
+var mockNet = &mockNetwork{
+	iface:    &net.Interface{},
+	ipnet:    &net.IPNet{},
+	gateway:  net.ParseIP("172.17.0.1"),
+	userIP:   net.ParseIP("172.17.0.1"),
+	cidr:     "172.17.0.1/32",
+	hostname: "mock_hostname",
+}
+
+func (n *mockNetwork) Interface() *net.Interface {
+	return n.iface
+}
+
+func (n *mockNetwork) IPNet() *net.IPNet {
+	return n.ipnet
+}
+
+func (n *mockNetwork) Gateway() net.IP {
+	return n.gateway
+}
+
+func (n *mockNetwork) UserIP() net.IP {
+	return n.userIP
+}
+
+func (n *mockNetwork) Cidr() string {
+	return n.cidr
+}
+
+func (n *mockNetwork) Hostname() string {
+	return n.hostname
+}
 
 func TestCore(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -28,12 +69,6 @@ func TestCore(t *testing.T) {
 	mockConfig := mock_config.NewMockService(ctrl)
 	resultChan := make(chan *scanner.ScanResult)
 	eventChan := make(chan *event.Event)
-
-	networkInfo := &network.NetworkInfo{
-		Interface: &net.Interface{},
-		UserIP:    net.ParseIP("0.0.0.0"),
-		Cidr:      "0.0.0.0/0",
-	}
 
 	conf := config.Config{
 		ID:   "1",
@@ -55,7 +90,7 @@ func TestCore(t *testing.T) {
 	)
 
 	coreService := core.New(
-		networkInfo,
+		mockNet,
 		&conf,
 		mockConfig,
 		discoveryService,
