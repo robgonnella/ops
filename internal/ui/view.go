@@ -492,15 +492,14 @@ func (v *view) stop() {
 		v.appCore.RemoveEventListener(id)
 	}
 	v.eventListenerIDs = []int{}
-	v.appCore.Stop()
 	v.app.Stop()
+	restoreStdout()
+	go v.appCore.Stop()
 }
 
 // restarts the entire application including re-instantiation of entire backend
 func (v *view) restart(options ...viewOption) {
 	v.stop()
-
-	restoreStdout()
 
 	conf := v.appCore.Conf()
 
