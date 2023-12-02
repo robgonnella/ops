@@ -200,6 +200,11 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 
 // selects a new context for network scanning
 func (v *view) onContextSelect(id string) {
+	if id == v.appCore.Conf().ID {
+		v.focus("servers")
+		return
+	}
+
 	if err := v.appCore.SetConfig(id); err != nil {
 		v.log.Error().Err(err).Msg("failed to set new context")
 		v.showErrorModal("Failed to set new context")
