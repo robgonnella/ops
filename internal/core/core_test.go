@@ -6,7 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
@@ -16,6 +15,7 @@ import (
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_event "github.com/robgonnella/ops/internal/mock/event"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 type mockNetwork struct {
@@ -72,6 +72,8 @@ func TestCore(t *testing.T) {
 
 	resultChan := make(chan *scanner.ScanResult)
 
+	mockScanner.EXPECT().Results().Return(resultChan).AnyTimes()
+
 	conf := config.Config{
 		ID:   "1",
 		Name: "default",
@@ -87,7 +89,6 @@ func TestCore(t *testing.T) {
 		conf,
 		mockScanner,
 		mockDetailsScanner,
-		resultChan,
 		mockEventManager,
 	)
 

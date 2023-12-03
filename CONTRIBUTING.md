@@ -27,7 +27,7 @@ PATH="${GOPATH}/bin:$PATH"
 **Install test dependencies**
 
 ```bash
-go install github.com/golang/mock/mockgen@v1.6.0
+make deps
 ```
 
 ## Test

@@ -13,6 +13,12 @@ tag = $(shell git describe --tags $(shell git rev-list --tags --max-count=1))
 
 flags = -ldflags '-s -w'
 
+#### Test Objects ####
+test_output_dir = coverage
+coverage_profile = $(test_output_dir)/coverage.profile
+coverage_out = $(test_output_dir)/coverage.out
+
+
 #### Build Objects ####
 component = $(app_name)_$(tag)
 component_path = $(prefix)/$(component)
@@ -73,10 +79,37 @@ $(zips): $(objects)
 .PHONY: release
 release: $(zips)
 
-# run tests
+.PHONY: lint
+lint:
+	golint -set_exit_status ./...
+
 .PHONY: test
 test:
-	go test -v -race ./...
+	rm -rf $(test_output_dir)
+	mkdir -p $(test_output_dir)
+	go test \
+		-v \
+		-race \
+		-coverprofile $(coverage_profile) \
+		-covermode=atomic \
+		./...
+
+.PHONY: print-coverage
+print-coverage:
+	go tool cover -func $(coverage_profile)
+
+.PHONY: coverage
+coverage:
+	go tool cover -func $(coverage_profile) -o=$(coverage_out)
+
+.PHONY: test-report
+test-report:
+	go tool cover -html=$(coverage_profile)
+
+.PHONY: deps
+deps:
+	go install go.uber.org/mock/mockgen@latest
+	go install golang.org/x/lint/golint@latest
 
 # generate mocks
 .PHONY: mock

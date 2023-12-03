@@ -23,7 +23,6 @@ type ScannerService struct {
 	conf          config.Config
 	scanner       Scanner
 	detailScanner DetailScanner
-	resultChan    chan *scanner.ScanResult
 	pauseChan     chan struct{}
 	eventManager  event.Manager
 	errorChan     chan error
@@ -36,7 +35,6 @@ func NewScannerService(
 	conf config.Config,
 	scanner Scanner,
 	detailScanner DetailScanner,
-	resultChan chan *scanner.ScanResult,
 	eventManager event.Manager,
 ) *ScannerService {
 	log := logger.New()
@@ -50,7 +48,6 @@ func NewScannerService(
 		conf:          conf,
 		scanner:       scanner,
 		detailScanner: detailScanner,
-		resultChan:    resultChan,
 		eventManager:  eventManager,
 		errorChan:     make(chan error),
 		pauseChan:     make(chan struct{}),
@@ -113,7 +110,7 @@ func (s *ScannerService) pollNetwork() error {
 		case <-s.pauseChan:
 			s.pauseChan <- struct{}{}
 			return nil
-		case r := <-s.resultChan:
+		case r := <-s.scanner.Results():
 			switch r.Type {
 			case scanner.ARPResult:
 				res := r.Payload.(*scanner.ArpScanResult)
