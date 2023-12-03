@@ -24,6 +24,6 @@ type Scanner interface {
 // Service interface for monitoring a network
 type Service interface {
 	MonitorNetwork() error
-	SetConfig(conf config.Config)
+	SetConfigAndScanner(conf config.Config, netScanner Scanner)
 	Stop()
 }

@@ -51,7 +51,7 @@ func TestConfigYamlRepo(t *testing.T) {
 					},
 				},
 			},
-			CIDR: "172.2.2.1/32",
+			Interface: "test",
 		}
 
 		newConf, err := repo.Create(conf)
@@ -71,7 +71,7 @@ func TestConfigYamlRepo(t *testing.T) {
 				Identity:  newConf.SSH.Identity,
 				Overrides: newConf.SSH.Overrides,
 			},
-			CIDR: newConf.CIDR,
+			Interface: newConf.Interface,
 		}
 
 		updatedConf, err := repo.Update(toUpdate)
@@ -97,7 +97,7 @@ func TestConfigYamlRepo(t *testing.T) {
 				User:     "test-user2",
 				Identity: "test-identity2",
 			},
-			CIDR: "172.2.2.2/32",
+			Interface: "test",
 		}
 
 		conf2 := &config.Config{
@@ -106,7 +106,7 @@ func TestConfigYamlRepo(t *testing.T) {
 				User:     "test-user3",
 				Identity: "test-identity3",
 			},
-			CIDR: "172.2.2.3/32",
+			Interface: "en1",
 		}
 
 		_, err := repo.Create(conf1)
@@ -138,7 +138,7 @@ func TestConfigYamlRepo(t *testing.T) {
 				User:     "test-user4",
 				Identity: "test-identity4",
 			},
-			CIDR: "172.2.2.4/32",
+			Interface: "test",
 		}
 
 		conf2 := &config.Config{
@@ -147,7 +147,7 @@ func TestConfigYamlRepo(t *testing.T) {
 				User:     "test-user5",
 				Identity: "test-identity5",
 			},
-			CIDR: "172.2.2.5/32",
+			Interface: "en1",
 		}
 
 		_, err := repo.Create(conf1)
@@ -158,7 +158,7 @@ func TestConfigYamlRepo(t *testing.T) {
 
 		assert.NoError(st, err)
 
-		foundConf, err := repo.GetByCIDR("172.2.2.5/32")
+		foundConf, err := repo.GetByInterface("en1")
 
 		assert.NoError(st, err)
 		assertEqualConf(st, newConf2, foundConf)

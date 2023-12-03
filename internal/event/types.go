@@ -4,6 +4,7 @@ type EventType string
 
 const (
 	FatalErrorEventType EventType = "fatal-error"
+	ErrorEventType      EventType = "error"
 )
 
 // Event data structure representing any event we may want to react to

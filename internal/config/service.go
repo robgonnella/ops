@@ -20,8 +20,8 @@ func (s *ConfigService) GetAll() ([]*Config, error) {
 	return s.repo.GetAll()
 }
 
-func (s *ConfigService) GetByCIDR(cidr string) (*Config, error) {
-	return s.repo.GetByCIDR(cidr)
+func (s *ConfigService) GetByInterface(ifaceName string) (*Config, error) {
+	return s.repo.GetByInterface(ifaceName)
 }
 
 // Create creates a new config

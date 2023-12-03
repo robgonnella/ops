@@ -97,19 +97,19 @@ func (mr *MockRepoMockRecorder) GetAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockRepo)(nil).GetAll))
 }
 
-// GetByCIDR mocks base method.
-func (m *MockRepo) GetByCIDR(arg0 string) (*config.Config, error) {
+// GetByInterface mocks base method.
+func (m *MockRepo) GetByInterface(arg0 string) (*config.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByCIDR", arg0)
+	ret := m.ctrl.Call(m, "GetByInterface", arg0)
 	ret0, _ := ret[0].(*config.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetByCIDR indicates an expected call of GetByCIDR.
-func (mr *MockRepoMockRecorder) GetByCIDR(arg0 any) *gomock.Call {
+// GetByInterface indicates an expected call of GetByInterface.
+func (mr *MockRepoMockRecorder) GetByInterface(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByCIDR", reflect.TypeOf((*MockRepo)(nil).GetByCIDR), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByInterface", reflect.TypeOf((*MockRepo)(nil).GetByInterface), arg0)
 }
 
 // Update mocks base method.
@@ -209,19 +209,19 @@ func (mr *MockServiceMockRecorder) GetAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockService)(nil).GetAll))
 }
 
-// GetByCIDR mocks base method.
-func (m *MockService) GetByCIDR(arg0 string) (*config.Config, error) {
+// GetByInterface mocks base method.
+func (m *MockService) GetByInterface(arg0 string) (*config.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetByCIDR", arg0)
+	ret := m.ctrl.Call(m, "GetByInterface", arg0)
 	ret0, _ := ret[0].(*config.Config)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetByCIDR indicates an expected call of GetByCIDR.
-func (mr *MockServiceMockRecorder) GetByCIDR(arg0 any) *gomock.Call {
+// GetByInterface indicates an expected call of GetByInterface.
+func (mr *MockServiceMockRecorder) GetByInterface(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByCIDR", reflect.TypeOf((*MockService)(nil).GetByCIDR), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByInterface", reflect.TypeOf((*MockService)(nil).GetByInterface), arg0)
 }
 
 // Update mocks base method.

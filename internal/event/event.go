@@ -61,9 +61,16 @@ func (m *EventManager) Send(evt Event) {
 	}
 }
 
-func (m *EventManager) SendFatalError(err error) {
+func (m *EventManager) ReportFatalError(err error) {
 	m.Send(Event{
 		Type:    FatalErrorEventType,
+		Payload: err,
+	})
+}
+
+func (m *EventManager) ReportError(err error) {
+	m.Send(Event{
+		Type:    ErrorEventType,
 		Payload: err,
 	})
 }

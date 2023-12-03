@@ -9,6 +9,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
 	"github.com/robgonnella/ops/internal/discovery"
@@ -82,8 +83,8 @@ func (v *view) initialize(
 	v.pages = tview.NewPages()
 
 	v.header = component.NewHeader(
-		netInfo.UserIP().String(),
-		v.appCore.Conf().CIDR,
+		netInfo,
+		v.appCore.Conf(),
 		v.onActionSubmit,
 	)
 	v.serverTable = component.NewServerTable(
@@ -112,7 +113,7 @@ func (v *view) initialize(
 	v.pages.AddPage("context", v.contextTable.Primitive(), true, false)
 
 	v.root.
-		AddItem(v.header.Primitive(), 12, 1, false).
+		AddItem(v.header.Primitive(), 15, 1, false).
 		AddItem(v.pages, 0, 1, true)
 
 	v.serverUpdateChan = make(chan event.Event)
@@ -163,21 +164,20 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 	}
 
 	if err := v.appCore.UpdateConfig(conf); err != nil {
-		v.log.Error().Err(err).Msg("failed to save config")
-		v.showErrorModal("Failed to save config")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	confs, err := v.appCore.GetConfigs()
 
 	if err != nil {
-		v.log.Error().Err(err).Msg("failed to get configs")
-		v.showErrorModal("Failed to retrieve configs")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
 	v.configureForm.UpdateConfig(v.appCore.Conf())
+	v.header.UpdateConfAndNetworkInfo(v.appCore.Conf(), v.appCore.NetworkInfo())
 
 	v.onActionSubmit(v.prevFocusedName)
 }
@@ -185,21 +185,20 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 // creates a new config with results from config form inputs
 func (v *view) onConfigureFormCreate(conf config.Config) {
 	if err := v.appCore.CreateConfig(conf); err != nil {
-		v.log.Error().Err(err).Msg("failed to create config")
-		v.showErrorModal("Failed to create config")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	confs, err := v.appCore.GetConfigs()
 
 	if err != nil {
-		v.log.Error().Err(err).Msg("failed to get configs")
-		v.showErrorModal("Failed to retrieve configs")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
 	v.configureForm.UpdateConfig(v.appCore.Conf())
+	v.header.UpdateConfAndNetworkInfo(v.appCore.Conf(), v.appCore.NetworkInfo())
 
 	v.focus("context")
 }
@@ -212,21 +211,20 @@ func (v *view) onContextSelect(id string) {
 	}
 
 	if err := v.appCore.SetConfig(id); err != nil {
-		v.log.Error().Err(err).Msg("failed to set new context")
-		v.showErrorModal("Failed to set new context")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	confs, err := v.appCore.GetConfigs()
 
 	if err != nil {
-		v.log.Error().Err(err).Msg("failed to get configs")
-		v.showErrorModal("Failed to retrieve configs")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
 	v.configureForm.UpdateConfig(v.appCore.Conf())
+	v.header.UpdateConfAndNetworkInfo(v.appCore.Conf(), v.appCore.NetworkInfo())
 
 	v.focus("servers")
 }
@@ -268,22 +266,19 @@ func (v *view) deleteContext() {
 	}()
 
 	if err := v.appCore.DeleteConfig(v.contextToDelete); err != nil {
-		v.log.Error().Err(err).Msg("failed to delete config")
-		v.showErrorModal("Failed to delete context")
+		v.eventManager.ReportError(err)
 		return
 	}
 
 	currentConfig := v.appCore.Conf().ID
 
 	if v.contextToDelete == currentConfig {
-		// deleted current context - restart app
 		v.showErrorModal("cannot delete current active context")
 	} else {
 		confs, err := v.appCore.GetConfigs()
 
 		if err != nil {
-			v.log.Error().Err(err).Msg("failed to get configs")
-			v.showErrorModal("Failed to retrieve configs")
+			v.eventManager.ReportError(err)
 			return
 		}
 
@@ -312,9 +307,9 @@ func (v *view) dismissErrorModal() {
 	v.app.SetRoot(v.root, true)
 }
 
-func (v *view) showFatalErrorModal(err error) {
+func (v *view) showFatalErrorModal(errMsg string) {
 	dismiss := func() {
-		v.dismissFatalErrorModal(err)
+		v.dismissFatalErrorModal()
 	}
 
 	buttons := []component.ModalButton{
@@ -325,16 +320,15 @@ func (v *view) showFatalErrorModal(err error) {
 	}
 
 	errorModal := component.NewModal(
-		err.Error(),
+		errMsg,
 		buttons,
 	)
 
 	v.app.SetRoot(errorModal.Primitive(), false)
 }
 
-func (v *view) dismissFatalErrorModal(err error) {
-	v.app.SetRoot(v.root, true)
-	v.stop()
+func (v *view) dismissFatalErrorModal() {
+	v.fullRestart()
 }
 
 // binds global key handlers
@@ -453,13 +447,13 @@ func (v *view) onSSH(ip string) {
 	err := cmd.Run()
 
 	if err != nil {
-		v.restart(
+		v.partialRestart(
 			withShowError("failed to ssh to " + ip + ": " + err.Error()),
 		)
 		return
 	}
 
-	v.restart()
+	v.partialRestart()
 }
 
 // handle incoming events
@@ -515,8 +509,50 @@ func (v *view) stop() {
 }
 
 // restarts the ui
-func (v *view) restart(options ...viewOption) {
+func (v *view) partialRestart(options ...viewOption) {
 	v.stop()
+
+	allConfigs, err := v.appCore.GetConfigs()
+
+	if err != nil {
+		v.log.Fatal().Err(err).Msg("failed to retrieve configs")
+	}
+
+	maskStdout()
+
+	v.initialize(allConfigs, options...)
+
+	if err := v.run(); err != nil {
+		restoreStdout()
+		v.log.Fatal().Err(err).Msg("failed to restart view")
+	}
+}
+
+// restarts the entire application including re-instantiation of entire backend
+func (v *view) fullRestart(options ...viewOption) {
+	v.stop()
+
+	restoreStdout()
+
+	conf := v.appCore.Conf()
+
+	netInfo, err := network.NewDefaultNetwork()
+
+	if err != nil {
+		v.log.Fatal().Err(err).Msg("failed to get default network info")
+	}
+
+	appCore, err := core.CreateNewAppCore(netInfo, v.eventManager, false)
+
+	if err != nil {
+		v.log.Fatal().Err(err).Msg("failed to restart app core")
+	}
+
+	if err := appCore.SetConfig(conf.ID); err != nil {
+		v.log.Fatal().Err(err).Msg("failed to set config on restart")
+	}
+
+	v.appCore = appCore
 
 	allConfigs, err := v.appCore.GetConfigs()
 
@@ -548,14 +584,25 @@ func (v *view) run() error {
 		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.serverUpdateChan),
 		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.serverUpdateChan),
 	)
-	fatalErrorListener := make(chan event.Event)
-	v.eventManager.RegisterListener(event.FatalErrorEventType, fatalErrorListener)
+	errorListener := make(chan event.Event)
+	v.eventListenerIDs = append(
+		v.eventListenerIDs,
+		v.eventManager.RegisterListener(event.ErrorEventType, errorListener),
+		v.eventManager.RegisterListener(event.FatalErrorEventType, errorListener),
+	)
 	v.processBackgroundEventUpdates()
 	v.appCore.StartDaemon()
 	go func() {
-		evt := <-fatalErrorListener
-		v.showFatalErrorModal(evt.Payload.(error))
-		v.app.Draw()
+		for evt := range errorListener {
+			switch evt.Type {
+			case event.FatalErrorEventType:
+				v.showFatalErrorModal(evt.Payload.(error).Error())
+				v.app.Draw()
+			case event.ErrorEventType:
+				v.showErrorModal(evt.Payload.(error).Error())
+				v.app.Draw()
+			}
+		}
 	}()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
 }

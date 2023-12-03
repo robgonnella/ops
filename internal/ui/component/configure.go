@@ -14,7 +14,7 @@ type ConfigureForm struct {
 	sshUserInput      *tview.InputField
 	sshIdentityInput  *tview.InputField
 	sshPortInput      *tview.InputField
-	cidrInput         *tview.InputField
+	ifaceInput        *tview.InputField
 	overrides         []map[string]*tview.InputField
 	conf              config.Config
 	onUpdate          func(conf config.Config)
@@ -40,11 +40,11 @@ func addBlankFormItems(
 	sshPortInput := tview.NewInputField()
 	sshPortInput.SetLabel("SSH Port: ")
 
-	cidrInput := tview.NewInputField()
-	cidrInput.SetLabel("Network CIDR: ")
+	ifaceInput := tview.NewInputField()
+	ifaceInput.SetLabel("Network Interface: ")
 
 	form.AddFormItem(configName)
-	form.AddFormItem(cidrInput)
+	form.AddFormItem(ifaceInput)
 	form.AddFormItem(sshUserInput)
 	form.AddFormItem(sshIdentityInput)
 	form.AddFormItem(sshPortInput)
@@ -60,7 +60,7 @@ func addBlankFormItems(
 		style.StyleDefault.Background(style.ColorLightGreen),
 	)
 
-	return configName, sshUserInput, sshIdentityInput, sshPortInput, cidrInput
+	return configName, sshUserInput, sshIdentityInput, sshPortInput, ifaceInput
 }
 
 // every time the add ssh override button is clicked we add three new inputs
@@ -92,7 +92,7 @@ func NewConfigureForm(
 ) *ConfigureForm {
 	form := tview.NewForm()
 
-	configName, sshUserInput, sshIdentityInput, sshPortInput, cidrInput := addBlankFormItems(
+	configName, sshUserInput, sshIdentityInput, sshPortInput, ifaceInput := addBlankFormItems(
 		form,
 		conf.Name,
 	)
@@ -103,7 +103,7 @@ func NewConfigureForm(
 		sshUserInput:      sshUserInput,
 		sshIdentityInput:  sshIdentityInput,
 		sshPortInput:      sshPortInput,
-		cidrInput:         cidrInput,
+		ifaceInput:        ifaceInput,
 		overrides:         []map[string]*tview.InputField{},
 		conf:              conf,
 		onUpdate:          onUpdate,
@@ -128,16 +128,16 @@ func (f *ConfigureForm) render() {
 	f.root.Clear(true)
 	f.overrides = []map[string]*tview.InputField{}
 
-	f.configName, f.sshUserInput, f.sshIdentityInput, f.sshPortInput, f.cidrInput =
+	f.configName, f.sshUserInput, f.sshIdentityInput, f.sshPortInput, f.ifaceInput =
 		addBlankFormItems(f.root, f.conf.Name)
 
-	networkTargets := f.conf.CIDR
+	networkTargets := f.conf.Interface
 
 	f.configName.SetText(f.conf.Name)
 	f.sshUserInput.SetText(f.conf.SSH.User)
 	f.sshIdentityInput.SetText(f.conf.SSH.Identity)
 	f.sshPortInput.SetText(f.conf.SSH.Port)
-	f.cidrInput.SetText(networkTargets)
+	f.ifaceInput.SetText(networkTargets)
 
 	for _, o := range f.conf.SSH.Overrides {
 		target, user, identity, port := createOverrideInputs(f.conf)
@@ -204,7 +204,7 @@ func (f *ConfigureForm) addFormButtons() {
 
 		f.overrides = []map[string]*tview.InputField{}
 		f.configName.SetText("")
-		f.cidrInput.SetText("")
+		f.ifaceInput.SetText("")
 		f.sshUserInput.SetText("")
 		f.sshIdentityInput.SetText("")
 		f.sshPortInput.SetText("")
@@ -213,12 +213,12 @@ func (f *ConfigureForm) addFormButtons() {
 
 	f.root.AddButton("Save", func() {
 		name := f.configName.GetText()
-		cidr := f.cidrInput.GetText()
+		iface := f.ifaceInput.GetText()
 		sshUser := f.sshUserInput.GetText()
 		sshIdentity := f.sshIdentityInput.GetText()
 		sshPort := f.sshPortInput.GetText()
 
-		if name == "" || cidr == "" || sshUser == "" || sshIdentity == "" || sshPort == "" {
+		if name == "" || iface == "" || sshUser == "" || sshIdentity == "" || sshPort == "" {
 			f.creatingNewConfig = false
 			return
 		}
@@ -244,7 +244,7 @@ func (f *ConfigureForm) addFormButtons() {
 				Port:      sshPort,
 				Overrides: confOverrides,
 			},
-			CIDR: cidr,
+			Interface: iface,
 		}
 
 		if f.creatingNewConfig {

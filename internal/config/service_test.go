@@ -27,7 +27,7 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: "172.2.2.2/32",
+			Interface: "test",
 		}
 
 		mockRepo.EXPECT().Get(expectedConfig.ID).Return(expectedConfig, nil)
@@ -46,7 +46,7 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: "172.2.2.2/32",
+			Interface: "test",
 		}
 
 		conf2 := &config.Config{
@@ -56,7 +56,7 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: "172.2.2.3/32",
+			Interface: "en1",
 		}
 
 		expectedConfs := []*config.Config{conf1, conf2}
@@ -77,7 +77,7 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: "172.2.2.2/32",
+			Interface: "test",
 		}
 
 		mockRepo.EXPECT().Create(conf).Return(conf, nil)
@@ -96,7 +96,7 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: "172.2.2.2/32",
+			Interface: "test",
 		}
 
 		mockRepo.EXPECT().Update(conf).Return(conf, nil)
@@ -118,7 +118,7 @@ func TestConfigService(t *testing.T) {
 	})
 
 	t.Run("gets last config by cidr", func(st *testing.T) {
-		cidr := "172.2.2.2/32"
+		ifaceName := "test"
 
 		expectedConfig := &config.Config{
 			Name: "test",
@@ -127,12 +127,12 @@ func TestConfigService(t *testing.T) {
 				Identity: "identity",
 				Port:     "22",
 			},
-			CIDR: cidr,
+			Interface: ifaceName,
 		}
 
-		mockRepo.EXPECT().GetByCIDR(cidr).Return(expectedConfig, nil)
+		mockRepo.EXPECT().GetByInterface(ifaceName).Return(expectedConfig, nil)
 
-		foundConf, err := service.GetByCIDR(cidr)
+		foundConf, err := service.GetByInterface(ifaceName)
 
 		assert.NoError(st, err)
 		assert.Equal(st, expectedConfig, foundConf)

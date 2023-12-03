@@ -10,6 +10,8 @@ import (
 	"github.com/robgonnella/ops/internal/logger"
 )
 
+type ScannerFactory func(netInfo network.Network, conf config.Config) (discovery.Scanner, error)
+
 // Core represents our core data structure through which the ui can interact
 // with the backend
 type Core struct {
@@ -18,6 +20,7 @@ type Core struct {
 	configService       config.Service
 	discovery           discovery.Service
 	eventManager        event.Manager
+	scannerFactory      ScannerFactory
 	debug               bool
 	registeredListeners []int
 	log                 logger.Logger
@@ -30,6 +33,7 @@ func New(
 	configService config.Service,
 	discovery discovery.Service,
 	eventManager event.Manager,
+	scannerFactory ScannerFactory,
 	debug bool,
 ) *Core {
 	log := logger.New()
@@ -40,6 +44,7 @@ func New(
 		configService:       configService,
 		discovery:           discovery,
 		eventManager:        eventManager,
+		scannerFactory:      scannerFactory,
 		debug:               debug,
 		registeredListeners: []int{},
 		log:                 log,
@@ -83,8 +88,22 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 	}
 
 	if updated.ID == c.conf.ID {
+		netInfo, err := network.NewNetworkFromInterfaceName(updated.Interface)
+
+		if err != nil {
+			return err
+		}
+
 		c.conf = updated
-		c.discovery.SetConfig(*c.conf)
+		c.networkInfo = netInfo
+
+		newScanner, err := c.scannerFactory(c.networkInfo, c.Conf())
+
+		if err != nil {
+			return err
+		}
+
+		c.discovery.SetConfigAndScanner(c.Conf(), newScanner)
 	}
 
 	return nil
@@ -103,7 +122,22 @@ func (c *Core) SetConfig(id string) error {
 	}
 
 	c.conf = conf
-	c.discovery.SetConfig(*c.conf)
+
+	netInfo, err := network.NewNetworkFromInterfaceName(c.conf.Interface)
+
+	if err != nil {
+		return err
+	}
+
+	c.networkInfo = netInfo
+
+	newScanner, err := c.scannerFactory(c.networkInfo, c.Conf())
+
+	if err != nil {
+		return err
+	}
+
+	c.discovery.SetConfigAndScanner(c.Conf(), newScanner)
 
 	return nil
 }

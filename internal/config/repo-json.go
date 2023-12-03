@@ -141,15 +141,14 @@ func (r *JSONRepo) Delete(id string) error {
 	return r.write()
 }
 
-// LastLoaded returns the most recently loaded config
-func (r *JSONRepo) GetByCIDR(cidr string) (*Config, error) {
+func (r *JSONRepo) GetByInterface(ifaceName string) (*Config, error) {
 	r.mux.Lock()
 	defer r.mux.Unlock()
 
 	var conf *Config
 
 	for _, c := range r.configs {
-		if c.CIDR == cidr {
+		if c.Interface == ifaceName {
 			conf = copyConfig(c)
 		}
 	}
@@ -226,6 +225,6 @@ func copyConfig(c *Config) *Config {
 			Port:      c.SSH.Port,
 			Overrides: c.SSH.Overrides,
 		},
-		CIDR: c.CIDR,
+		Interface: c.Interface,
 	}
 }
