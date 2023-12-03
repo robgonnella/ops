@@ -6,6 +6,7 @@ import (
 
 	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/core"
+	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
@@ -39,7 +40,7 @@ func NewUI() *UI {
 
 // Launch configures logging, creates a new instance of view and launches
 // our terminal UI application
-func (u *UI) Launch(debug bool) error {
+func (u *UI) Launch(eventManager event.Manager, debug bool) error {
 	log := logger.New()
 
 	networkInfo, err := network.NewDefaultNetwork()
@@ -48,7 +49,7 @@ func (u *UI) Launch(debug bool) error {
 		log.Fatal().Err(err).Msg("failed to get default network info")
 	}
 
-	appCore, err := core.CreateNewAppCore(networkInfo)
+	appCore, err := core.CreateNewAppCore(networkInfo, eventManager, debug)
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create app core")
@@ -64,7 +65,7 @@ func (u *UI) Launch(debug bool) error {
 		log.Fatal().Err(err).Msg("failed to retrieve configs")
 	}
 
-	u.view = newView(allConfigs, appCore)
+	u.view = newView(allConfigs, appCore, eventManager)
 
 	level := zerolog.GlobalLevel()
 

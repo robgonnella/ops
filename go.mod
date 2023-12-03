@@ -7,6 +7,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.4.0
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
+	github.com/magiconair/properties v1.8.7
 	github.com/rivo/tview v0.0.0-20231115183240-7c9e464bac02
 	github.com/robgonnella/go-lanscan v1.11.1
 	github.com/rs/zerolog v1.31.0
@@ -29,7 +30,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/oui v0.0.0-20150225163751-35b4deb627f8 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect

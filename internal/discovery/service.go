@@ -24,8 +24,10 @@ type ScannerService struct {
 	scanner       Scanner
 	detailScanner DetailScanner
 	resultChan    chan *scanner.ScanResult
-	eventChan     chan *event.Event
+	pauseChan     chan struct{}
+	eventManager  event.Manager
 	errorChan     chan error
+	monitoring    bool
 	log           logger.Logger
 }
 
@@ -35,7 +37,7 @@ func NewScannerService(
 	scanner Scanner,
 	detailScanner DetailScanner,
 	resultChan chan *scanner.ScanResult,
-	eventChan chan *event.Event,
+	eventManager event.Manager,
 ) *ScannerService {
 	log := logger.New()
 
@@ -49,8 +51,10 @@ func NewScannerService(
 		scanner:       scanner,
 		detailScanner: detailScanner,
 		resultChan:    resultChan,
-		eventChan:     eventChan,
+		eventManager:  eventManager,
 		errorChan:     make(chan error),
+		pauseChan:     make(chan struct{}),
+		monitoring:    false,
 		log:           log,
 	}
 }
@@ -70,10 +74,25 @@ func (s *ScannerService) Stop() {
 	s.scanner.Stop()
 }
 
+func (s *ScannerService) SetConfig(conf config.Config) {
+	if s.monitoring {
+		s.pause()
+		defer func() {
+			go s.pollNetwork()
+		}()
+	}
+	s.conf = conf
+}
+
 // private
 // make polling calls to scanner.Scan()
 func (s *ScannerService) pollNetwork() error {
 	ticker := time.NewTicker(time.Second * 30)
+
+	defer func() {
+		ticker.Stop()
+		s.monitoring = false
+	}()
 
 	// start first scan
 	// always scan in goroutine to prevent blocking result channel
@@ -83,12 +102,17 @@ func (s *ScannerService) pollNetwork() error {
 		}
 	}()
 
+	s.monitoring = true
+
 	for {
 		select {
 		case <-s.ctx.Done():
 			s.log.Info().Msg("Network polling stopped")
 			ticker.Stop()
 			return s.ctx.Err()
+		case <-s.pauseChan:
+			s.pauseChan <- struct{}{}
+			return nil
 		case r := <-s.resultChan:
 			switch r.Type {
 			case scanner.ARPResult:
@@ -126,6 +150,7 @@ func (s *ScannerService) pollNetwork() error {
 			}
 		case err := <-s.errorChan:
 			s.log.Error().Err(err).Msg("discovery service encountered an error")
+			s.eventManager.SendFatalError(err)
 			return err
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
@@ -174,12 +199,12 @@ func (s *ScannerService) handleArpDiscoveryResult(result *DiscoveryResult) {
 
 	s.log.Info().Fields(fields).Msg("found network device")
 
-	go func() {
-		s.eventChan <- &event.Event{
-			Type:    result.Type,
-			Payload: result,
-		}
-	}()
+	s.eventManager.Send(
+		event.Event{
+			Type:    event.EventType(result.Type),
+			Payload: *result,
+		},
+	)
 }
 
 // handle results found during polling
@@ -234,10 +259,15 @@ func (s *ScannerService) handleSynDiscoveryResult(result *DiscoveryResult) {
 		result.OS = "Unknown"
 	}
 
-	go func() {
-		s.eventChan <- &event.Event{
-			Type:    result.Type,
-			Payload: result,
-		}
-	}()
+	s.eventManager.Send(
+		event.Event{
+			Type:    event.EventType(result.Type),
+			Payload: *result,
+		},
+	)
+}
+
+func (s *ScannerService) pause() {
+	s.pauseChan <- struct{}{}
+	<-s.pauseChan
 }

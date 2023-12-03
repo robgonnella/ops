@@ -119,6 +119,10 @@ func (f *ConfigureForm) Primitive() tview.Primitive {
 	return f.root
 }
 
+func (f *ConfigureForm) UpdateConfig(conf config.Config) {
+	f.conf = conf
+}
+
 // preloads all info based on current active configuration (context)
 func (f *ConfigureForm) render() {
 	f.root.Clear(true)

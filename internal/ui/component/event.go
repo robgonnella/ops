@@ -43,11 +43,11 @@ func (t *EventTable) Primitive() tview.Primitive {
 
 // UpdateTable adds a new event to the table and removes oldest row if we've
 // reached configured maximum for events to display
-func (t *EventTable) UpdateTable(evt *event.Event) {
+func (t *EventTable) UpdateTable(evt event.Event) {
 	t.count++
 	evtType := string(evt.Type)
 
-	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
+	payload, ok := evt.Payload.(discovery.DiscoveryResult)
 
 	if !ok {
 		return

@@ -14,6 +14,7 @@ import (
 	"github.com/robgonnella/ops/internal/event"
 	mock_config "github.com/robgonnella/ops/internal/mock/config"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
+	mock_event "github.com/robgonnella/ops/internal/mock/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,8 +68,9 @@ func TestCore(t *testing.T) {
 	mockScanner := mock_discovery.NewMockScanner(ctrl)
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
+	mockEventManager := mock_event.NewMockManager(ctrl)
+
 	resultChan := make(chan *scanner.ScanResult)
-	eventChan := make(chan *event.Event)
 
 	conf := config.Config{
 		ID:   "1",
@@ -86,7 +88,7 @@ func TestCore(t *testing.T) {
 		mockScanner,
 		mockDetailsScanner,
 		resultChan,
-		eventChan,
+		mockEventManager,
 	)
 
 	coreService := core.New(
@@ -94,7 +96,8 @@ func TestCore(t *testing.T) {
 		&conf,
 		mockConfig,
 		discoveryService,
-		eventChan,
+		mockEventManager,
+		false,
 	)
 
 	t.Run("returns config", func(st *testing.T) {
@@ -202,15 +205,6 @@ func TestCore(t *testing.T) {
 		}
 	})
 
-	t.Run("registers and removes event listener", func(st *testing.T) {
-		evtChan := make(chan *event.Event)
-		id := coreService.RegisterEventListener(evtChan)
-
-		assert.Equal(st, 1, id)
-
-		coreService.RemoveEventListener(id)
-	})
-
 	t.Run("monitors network", func(st *testing.T) {
 		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
@@ -234,7 +228,7 @@ func TestCore(t *testing.T) {
 		}
 
 		wg := sync.WaitGroup{}
-		wg.Add(2)
+		wg.Add(3)
 
 		mockScanner.EXPECT().Scan().DoAndReturn(func() error {
 			defer wg.Done()
@@ -256,6 +250,26 @@ func TestCore(t *testing.T) {
 				defer wg.Done()
 				return details, nil
 			})
+
+		expectedEvent := event.Event{
+			Type: discovery.DiscoverySynUpdateEvent,
+			Payload: discovery.DiscoveryResult{
+				Type:     discovery.DiscoverySynUpdateEvent,
+				ID:       mac.String(),
+				Hostname: details.Hostname,
+				IP:       "127.0.0.1",
+				OS:       details.OS,
+				Status:   discovery.ServerOnline,
+				Port: discovery.Port{
+					ID:     22,
+					Status: discovery.PortOpen,
+				},
+			},
+		}
+
+		mockEventManager.EXPECT().Send(expectedEvent).DoAndReturn(func(evt event.Event) {
+			wg.Done()
+		})
 
 		go coreService.Monitor()
 

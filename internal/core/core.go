@@ -1,8 +1,7 @@
 package core
 
 import (
-	"context"
-	"sync"
+	"errors"
 
 	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/config"
@@ -11,27 +10,17 @@ import (
 	"github.com/robgonnella/ops/internal/logger"
 )
 
-// EventListener represents a registered listener for events
-type EventListener struct {
-	id      int
-	channel chan *event.Event
-}
-
 // Core represents our core data structure through which the ui can interact
 // with the backend
 type Core struct {
-	ctx            context.Context
-	cancel         context.CancelFunc
-	conf           *config.Config
-	networkInfo    network.Network
-	configService  config.Service
-	discovery      discovery.Service
-	log            logger.Logger
-	eventChan      chan *event.Event
-	evtListeners   []*EventListener
-	nextListenerId int
-	errorChan      chan error
-	mux            sync.Mutex
+	conf                *config.Config
+	networkInfo         network.Network
+	configService       config.Service
+	discovery           discovery.Service
+	eventManager        event.Manager
+	debug               bool
+	registeredListeners []int
+	log                 logger.Logger
 }
 
 // New returns new core module for given configuration
@@ -40,25 +29,20 @@ func New(
 	conf *config.Config,
 	configService config.Service,
 	discovery discovery.Service,
-	discoveryEvtChan chan *event.Event,
+	eventManager event.Manager,
+	debug bool,
 ) *Core {
 	log := logger.New()
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &Core{
-		ctx:            ctx,
-		cancel:         cancel,
-		networkInfo:    networkInfo,
-		conf:           conf,
-		configService:  configService,
-		discovery:      discovery,
-		eventChan:      discoveryEvtChan,
-		evtListeners:   []*EventListener{},
-		errorChan:      make(chan error),
-		nextListenerId: 1,
-		mux:            sync.Mutex{},
-		log:            log,
+		networkInfo:         networkInfo,
+		conf:                conf,
+		configService:       configService,
+		discovery:           discovery,
+		eventManager:        eventManager,
+		debug:               debug,
+		registeredListeners: []int{},
+		log:                 log,
 	}
 }
 
@@ -67,8 +51,7 @@ func New(
 // instantiated to continue.
 func (c *Core) Stop() error {
 	c.discovery.Stop()
-	c.cancel()
-	return c.ctx.Err()
+	return nil
 }
 
 // Conf return the currently loaded configuration
@@ -99,13 +82,20 @@ func (c *Core) UpdateConfig(conf config.Config) error {
 		return err
 	}
 
-	c.conf = updated
+	if updated.ID == c.conf.ID {
+		c.conf = updated
+		c.discovery.SetConfig(*c.conf)
+	}
 
 	return nil
 }
 
 // SetConfig sets the current active configuration
 func (c *Core) SetConfig(id string) error {
+	if id == c.conf.ID {
+		return nil
+	}
+
 	conf, err := c.configService.Get(id)
 
 	if err != nil {
@@ -113,13 +103,20 @@ func (c *Core) SetConfig(id string) error {
 	}
 
 	c.conf = conf
+	c.discovery.SetConfig(*c.conf)
 
 	return nil
 }
 
 // DeleteConfig deletes a configuration
 func (c *Core) DeleteConfig(id string) error {
-	return c.configService.Delete(id)
+	if id == c.conf.ID {
+		return errors.New("cannot delete current active config")
+	}
+
+	err := c.configService.Delete(id)
+
+	return err
 }
 
 // GetConfigs returns all stored configs
@@ -127,47 +124,51 @@ func (c *Core) GetConfigs() ([]*config.Config, error) {
 	return c.configService.GetAll()
 }
 
+// Monitor starts the processes for monitoring and tracking
+// devices on the configured network
+func (c *Core) Monitor() error {
+	evtChan := make(chan event.Event)
+	if c.debug {
+		c.registeredListeners = append(c.registeredListeners,
+			c.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, evtChan),
+			c.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, evtChan),
+			c.eventManager.RegisterListener(event.FatalErrorEventType, evtChan),
+		)
+
+		defer func() {
+			for _, id := range c.registeredListeners {
+				c.eventManager.RemoveListener(id)
+			}
+		}()
+
+		go func() {
+			for evt := range evtChan {
+				if err, ok := evt.Payload.(error); ok {
+					c.log.Fatal().Err(err).Msg("")
+				}
+
+				if result, ok := evt.Payload.(discovery.DiscoveryResult); ok {
+					fields := map[string]interface{}{
+						"id":         result.ID,
+						"hostname":   result.Hostname,
+						"ip":         result.IP,
+						"os":         result.OS,
+						"vendor":     result.Vendor,
+						"status":     result.Status,
+						"port":       result.Port.ID,
+						"portStatus": result.Port.Status,
+					}
+
+					c.log.Info().Fields(fields).Msg(result.Type)
+				}
+			}
+		}()
+	}
+
+	return c.discovery.MonitorNetwork()
+}
+
 // StartDaemon starts the network monitoring processes in a goroutine
-func (c *Core) StartDaemon(errorReporter chan error) {
-	go func() {
-		if err := c.Monitor(); err != nil {
-			go func() {
-				c.errorChan <- err
-			}()
-			go func() {
-				errorReporter <- err
-			}()
-		}
-	}()
-}
-
-// RegisterEventListener registers a channel as a listener for events
-func (c *Core) RegisterEventListener(channel chan *event.Event) int {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	listener := &EventListener{
-		id:      c.nextListenerId,
-		channel: channel,
-	}
-	c.evtListeners = append(c.evtListeners, listener)
-	c.nextListenerId++
-
-	return listener.id
-}
-
-// RemoveEventListener removes and closes a channel previously
-// registered as a listener
-func (c *Core) RemoveEventListener(id int) {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	listeners := []*EventListener{}
-	for _, listener := range c.evtListeners {
-		if listener.id != id {
-			listeners = append(listeners, listener)
-		}
-	}
-
-	c.evtListeners = listeners
+func (c *Core) StartDaemon() {
+	go c.Monitor()
 }

@@ -2,8 +2,8 @@ package discovery_test
 
 import (
 	"net"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
@@ -11,7 +11,7 @@ import (
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
-	"github.com/stretchr/testify/assert"
+	mock_event "github.com/robgonnella/ops/internal/mock/event"
 )
 
 func TestDiscoveryService(t *testing.T) {
@@ -33,15 +33,16 @@ func TestDiscoveryService(t *testing.T) {
 	t.Run("monitors network for offline servers", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockEventManager := mock_event.NewMockManager(ctrl)
+
 		resultChan := make(chan *scanner.ScanResult)
-		eventChan := make(chan *event.Event)
 
 		service := discovery.NewScannerService(
 			conf,
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
-			eventChan,
+			mockEventManager,
 		)
 
 		port := scanner.Port{
@@ -70,29 +71,42 @@ func TestDiscoveryService(t *testing.T) {
 		})
 		mockScanner.EXPECT().Stop()
 
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		expectedEvt := event.Event{
+			Type: discovery.DiscoverySynUpdateEvent,
+			Payload: discovery.DiscoveryResult{
+				Type:     discovery.DiscoverySynUpdateEvent,
+				ID:       mac.String(),
+				Hostname: "Unknown",
+				IP:       "127.0.0.1",
+				OS:       "Unknown",
+				Status:   discovery.ServerOffline,
+				Port: discovery.Port{
+					ID:     port.ID,
+					Status: discovery.PortClosed,
+				},
+			},
+		}
+
+		mockEventManager.EXPECT().Send(expectedEvt).DoAndReturn(func(evt event.Event) {
+			wg.Done()
+		})
+
 		go service.MonitorNetwork()
 
-		time.Sleep(time.Millisecond * 10)
+		wg.Wait()
 
 		service.Stop()
-
-		evt := <-eventChan
-
-		assert.Equal(st, discovery.DiscoverySynUpdateEvent, evt.Type)
-
-		payload, ok := evt.Payload.(*discovery.DiscoveryResult)
-
-		assert.True(st, ok)
-
-		assert.Equal(st, mac.String(), payload.ID)
-		assert.Equal(st, discovery.ServerOffline, payload.Status)
 	})
 
 	t.Run("monitors network for online servers", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockEventManager := mock_event.NewMockManager(ctrl)
+
 		resultChan := make(chan *scanner.ScanResult)
-		eventChan := make(chan *event.Event)
 
 		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
@@ -101,7 +115,7 @@ func TestDiscoveryService(t *testing.T) {
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
-			eventChan,
+			mockEventManager,
 		)
 
 		port := scanner.Port{
@@ -129,29 +143,42 @@ func TestDiscoveryService(t *testing.T) {
 
 		mockScanner.EXPECT().Stop()
 
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		expectedEvt := event.Event{
+			Type: discovery.DiscoverySynUpdateEvent,
+			Payload: discovery.DiscoveryResult{
+				Type:     discovery.DiscoverySynUpdateEvent,
+				ID:       mac.String(),
+				Hostname: "Unknown",
+				IP:       "127.0.0.1",
+				OS:       "Unknown",
+				Status:   discovery.ServerOnline,
+				Port: discovery.Port{
+					ID:     port.ID,
+					Status: discovery.PortClosed,
+				},
+			},
+		}
+
+		mockEventManager.EXPECT().Send(expectedEvt).DoAndReturn(func(evt event.Event) {
+			wg.Done()
+		})
+
 		go service.MonitorNetwork()
 
-		time.Sleep(time.Millisecond * 10)
+		wg.Wait()
 
 		service.Stop()
-
-		evt := <-eventChan
-
-		assert.Equal(st, discovery.DiscoverySynUpdateEvent, evt.Type)
-
-		payload, ok := evt.Payload.(*discovery.DiscoveryResult)
-
-		assert.True(st, ok)
-
-		assert.Equal(st, mac.String(), payload.ID)
-		assert.Equal(st, discovery.ServerOnline, payload.Status)
 	})
 
 	t.Run("requests extra details when ssh is enabled", func(st *testing.T) {
 		mockScanner := mock_discovery.NewMockScanner(ctrl)
 		mockDetailScanner := mock_discovery.NewMockDetailScanner(ctrl)
+		mockEventManager := mock_event.NewMockManager(ctrl)
+
 		resultChan := make(chan *scanner.ScanResult)
-		eventChan := make(chan *event.Event)
 
 		mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 
@@ -160,7 +187,7 @@ func TestDiscoveryService(t *testing.T) {
 			mockScanner,
 			mockDetailScanner,
 			resultChan,
-			eventChan,
+			mockEventManager,
 		)
 
 		port := scanner.Port{
@@ -192,27 +219,39 @@ func TestDiscoveryService(t *testing.T) {
 			}()
 			return nil
 		})
-		mockScanner.EXPECT().Stop()
+
 		mockDetailScanner.EXPECT().GetServerDetails(gomock.Any(), resultPayload.IP.String(), conf.SSH.Port).Return(expectedDetails, nil)
+
+		mockScanner.EXPECT().Stop()
+
+		expectedEvt := event.Event{
+			Type: discovery.DiscoverySynUpdateEvent,
+			Payload: discovery.DiscoveryResult{
+				Type:     discovery.DiscoverySynUpdateEvent,
+				ID:       mac.String(),
+				Hostname: "fancy-hostname",
+				IP:       "127.0.0.1",
+				OS:       "fancy-os",
+				Status:   discovery.ServerOnline,
+				Port: discovery.Port{
+					ID:     port.ID,
+					Status: discovery.PortOpen,
+				},
+			},
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+
+		mockEventManager.EXPECT().Send(expectedEvt).DoAndReturn(func(evt event.Event) {
+			wg.Done()
+		})
 
 		go service.MonitorNetwork()
 
-		time.Sleep(time.Millisecond * 10)
+		wg.Wait()
 
 		service.Stop()
-
-		evt := <-eventChan
-
-		assert.Equal(st, discovery.DiscoverySynUpdateEvent, evt.Type)
-
-		payload, ok := evt.Payload.(*discovery.DiscoveryResult)
-
-		assert.True(st, ok)
-
-		assert.Equal(st, mac.String(), payload.ID)
-		assert.Equal(st, discovery.ServerOnline, payload.Status)
-		assert.Equal(st, expectedDetails.Hostname, payload.Hostname)
-		assert.Equal(st, expectedDetails.OS, payload.OS)
 	})
 
 }

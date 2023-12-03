@@ -37,7 +37,7 @@ func getDefaultConfig(networkInfo network.Network) *config.Config {
 }
 
 // CreateNewAppCore creates and returns a new instance of *core.Core
-func CreateNewAppCore(networkInfo network.Network) (*Core, error) {
+func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, debug bool) (*Core, error) {
 	configPath := viper.Get("config-path").(string)
 	configRepo := config.NewJSONRepo(configPath)
 	configService := config.NewConfigService(configRepo)
@@ -83,14 +83,12 @@ func CreateNewAppCore(networkInfo network.Network) (*Core, error) {
 
 	detailScanner := discovery.NewUnameScanner(*conf)
 
-	eventChan := make(chan *event.Event)
-
 	scannerService := discovery.NewScannerService(
 		*conf,
 		netScanner,
 		detailScanner,
 		scanResults,
-		eventChan,
+		eventManager,
 	)
 
 	return New(
@@ -98,6 +96,7 @@ func CreateNewAppCore(networkInfo network.Network) (*Core, error) {
 		conf,
 		configService,
 		scannerService,
-		eventChan,
+		eventManager,
+		debug,
 	), nil
 }

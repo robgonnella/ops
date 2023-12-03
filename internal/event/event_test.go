@@ -1,0 +1,64 @@
+package event_test
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/magiconair/properties/assert"
+	"github.com/robgonnella/ops/internal/event"
+)
+
+func TestEventManager(t *testing.T) {
+	t.Run("registers event listener and sends event", func(st *testing.T) {
+		eventManager := event.NewEventManager()
+
+		listener := make(chan event.Event)
+
+		eventManager.RegisterListener("test-event", listener)
+
+		eventManager.Send(event.Event{
+			Type:    "a-different-type",
+			Payload: struct{}{},
+		})
+
+		eventManager.Send(event.Event{
+			Type:    "test-event",
+			Payload: true,
+		})
+
+		result := <-listener
+
+		assert.Equal(st, result.Type, event.EventType("test-event"))
+	})
+
+	t.Run("removes event listener", func(st *testing.T) {
+		eventManager := event.NewEventManager()
+
+		listener := make(chan event.Event)
+
+		id := eventManager.RegisterListener("test-event", listener)
+
+		removedId := eventManager.RemoveListener(id)
+
+		assert.Equal(st, removedId, id)
+	})
+
+	t.Run("sends error event", func(st *testing.T) {
+		eventManager := event.NewEventManager()
+
+		listener := make(chan event.Event)
+
+		eventManager.RegisterListener(event.FatalErrorEventType, listener)
+
+		eventManager.Send(event.Event{
+			Type:    "a-different-type",
+			Payload: struct{}{},
+		})
+
+		eventManager.SendFatalError(errors.New("test error"))
+
+		result := <-listener
+
+		assert.Equal(st, result.Type, event.FatalErrorEventType)
+	})
+}
