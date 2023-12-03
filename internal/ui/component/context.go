@@ -58,7 +58,7 @@ func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
 	for rowIdx, conf := range confs {
 		id := conf.ID
 		name := conf.Name
-		cidr := conf.CIDR
+		iface := conf.Interface
 		sshUser := conf.SSH.User
 		sshIdentity := conf.SSH.Identity
 		overrides := "N"
@@ -67,7 +67,7 @@ func (c *ConfigContext) UpdateConfigs(current string, confs []*config.Config) {
 			overrides = "Y"
 		}
 
-		row := []string{id, name, cidr, sshUser, sshIdentity, overrides}
+		row := []string{id, name, iface, sshUser, sshIdentity, overrides}
 
 		for col, text := range row {
 			if id == current && col == 1 {

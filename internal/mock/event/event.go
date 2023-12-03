@@ -66,6 +66,30 @@ func (mr *MockManagerMockRecorder) RemoveListener(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveListener", reflect.TypeOf((*MockManager)(nil).RemoveListener), arg0)
 }
 
+// ReportError mocks base method.
+func (m *MockManager) ReportError(arg0 error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ReportError", arg0)
+}
+
+// ReportError indicates an expected call of ReportError.
+func (mr *MockManagerMockRecorder) ReportError(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportError", reflect.TypeOf((*MockManager)(nil).ReportError), arg0)
+}
+
+// ReportFatalError mocks base method.
+func (m *MockManager) ReportFatalError(arg0 error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ReportFatalError", arg0)
+}
+
+// ReportFatalError indicates an expected call of ReportFatalError.
+func (mr *MockManagerMockRecorder) ReportFatalError(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportFatalError", reflect.TypeOf((*MockManager)(nil).ReportFatalError), arg0)
+}
+
 // Send mocks base method.
 func (m *MockManager) Send(arg0 event.Event) {
 	m.ctrl.T.Helper()
@@ -76,16 +100,4 @@ func (m *MockManager) Send(arg0 event.Event) {
 func (mr *MockManagerMockRecorder) Send(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockManager)(nil).Send), arg0)
-}
-
-// SendFatalError mocks base method.
-func (m *MockManager) SendFatalError(arg0 error) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendFatalError", arg0)
-}
-
-// SendFatalError indicates an expected call of SendFatalError.
-func (mr *MockManagerMockRecorder) SendFatalError(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendFatalError", reflect.TypeOf((*MockManager)(nil).SendFatalError), arg0)
 }

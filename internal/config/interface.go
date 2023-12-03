@@ -21,10 +21,10 @@ type SSHConfig struct {
 
 // Config represents the data structure of our user provided json configuration
 type Config struct {
-	ID   string    `json:"id"`
-	Name string    `json:"name"`
-	SSH  SSHConfig `json:"ssh"`
-	CIDR string    `json:"cidr"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	SSH       SSHConfig `json:"ssh"`
+	Interface string    `json:"interface"`
 }
 
 type Configs struct {
@@ -35,7 +35,7 @@ type Configs struct {
 type Repo interface {
 	Get(id string) (*Config, error)
 	GetAll() ([]*Config, error)
-	GetByCIDR(cidr string) (*Config, error)
+	GetByInterface(ifaceName string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(id string) error
@@ -45,7 +45,7 @@ type Repo interface {
 type Service interface {
 	Get(id string) (*Config, error)
 	GetAll() ([]*Config, error)
-	GetByCIDR(cidr string) (*Config, error)
+	GetByInterface(ifaceName string) (*Config, error)
 	Create(conf *Config) (*Config, error)
 	Update(conf *Config) (*Config, error)
 	Delete(id string) error

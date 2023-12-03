@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
@@ -14,6 +15,7 @@ import (
 	mock_config "github.com/robgonnella/ops/internal/mock/config"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_event "github.com/robgonnella/ops/internal/mock/event"
+	"github.com/robgonnella/ops/internal/test_util"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -65,10 +67,18 @@ func TestCore(t *testing.T) {
 
 	defer ctrl.Finish()
 
+	testIfaceName, err := test_util.GetTestInterfaceName()
+
+	assert.NoError(t, err)
+
 	mockScanner := mock_discovery.NewMockScanner(ctrl)
 	mockDetailsScanner := mock_discovery.NewMockDetailScanner(ctrl)
 	mockConfig := mock_config.NewMockService(ctrl)
 	mockEventManager := mock_event.NewMockManager(ctrl)
+
+	mockScannerFactory := func(netInfo network.Network, conf config.Config) (discovery.Scanner, error) {
+		return mockScanner, nil
+	}
 
 	resultChan := make(chan *scanner.ScanResult)
 
@@ -82,7 +92,7 @@ func TestCore(t *testing.T) {
 			Identity: "identity",
 			Port:     "22",
 		},
-		CIDR: "172.100.1.1/24",
+		Interface: testIfaceName,
 	}
 
 	discoveryService := discovery.NewScannerService(
@@ -98,6 +108,7 @@ func TestCore(t *testing.T) {
 		mockConfig,
 		discoveryService,
 		mockEventManager,
+		mockScannerFactory,
 		false,
 	)
 
@@ -117,7 +128,7 @@ func TestCore(t *testing.T) {
 				User:     "new-user",
 				Identity: "new-identity",
 			},
-			CIDR: "192.111.1.1/28",
+			Interface: testIfaceName,
 		}
 
 		mockConfig.EXPECT().Update(&newConf).Return(&newConf, nil)
@@ -139,7 +150,7 @@ func TestCore(t *testing.T) {
 				User:     "other-user",
 				Identity: "other-identity",
 			},
-			CIDR: "172.22.2.2/32",
+			Interface: testIfaceName,
 		}
 
 		mockConfig.EXPECT().Get(anotherConf.ID).Return(&anotherConf, nil)
@@ -158,7 +169,7 @@ func TestCore(t *testing.T) {
 				User:     "new-user",
 				Identity: "new-identity",
 			},
-			CIDR: "172.22.2.2/32",
+			Interface: testIfaceName,
 		}
 
 		mockConfig.EXPECT().Create(&newConf).Return(&newConf, nil)
@@ -185,7 +196,7 @@ func TestCore(t *testing.T) {
 				User:     "other-user",
 				Identity: "other-identity",
 			},
-			CIDR: "172.22.2.3/32",
+			Interface: testIfaceName,
 		}
 
 		expectedConfs := []*config.Config{&conf, &anotherConf}

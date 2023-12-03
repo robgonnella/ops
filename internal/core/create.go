@@ -32,7 +32,7 @@ func getDefaultConfig(networkInfo network.Network) *config.Config {
 			Port:      "22",
 			Overrides: []config.SSHOverride{},
 		},
-		CIDR: networkInfo.Cidr(),
+		Interface: networkInfo.Interface().Name,
 	}
 }
 
@@ -42,7 +42,7 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 	configRepo := config.NewJSONRepo(configPath)
 	configService := config.NewConfigService(configRepo)
 
-	conf, err := configService.GetByCIDR(networkInfo.Cidr())
+	conf, err := configService.GetByInterface(networkInfo.Interface().Name)
 
 	if err != nil {
 		if errors.Is(err, exception.ErrRecordNotFound) {
@@ -56,27 +56,11 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 		}
 	}
 
-	ports := []string{conf.SSH.Port}
-
-	for _, c := range conf.SSH.Overrides {
-		if idx := slices.Index(ports, c.Port); idx == -1 {
-			ports = append(ports, c.Port)
-		}
-	}
-
-	vendorRepo, err := oui.GetDefaultVendorRepo()
+	netScanner, err := createScanner(networkInfo, *conf)
 
 	if err != nil {
 		return nil, err
 	}
-
-	netScanner := scanner.NewFullScanner(
-		networkInfo,
-		[]string{},
-		ports,
-		54321,
-		scanner.WithVendorInfo(vendorRepo),
-	)
 
 	detailScanner := discovery.NewUnameScanner(*conf)
 
@@ -93,6 +77,32 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 		configService,
 		scannerService,
 		eventManager,
+		createScanner,
 		debug,
 	), nil
+}
+
+func createScanner(netInfo network.Network, conf config.Config) (discovery.Scanner, error) {
+	vendorRepo, err := oui.GetDefaultVendorRepo()
+
+	if err != nil {
+		return nil, err
+	}
+
+	ports := []string{conf.SSH.Port}
+
+	for _, c := range conf.SSH.Overrides {
+		if idx := slices.Index(ports, c.Port); idx == -1 {
+			ports = append(ports, c.Port)
+		}
+	}
+
+	return scanner.NewFullScanner(
+		netInfo,
+		[]string{},
+		ports,
+		54321,
+		scanner.WithVendorInfo(vendorRepo),
+	), nil
+
 }

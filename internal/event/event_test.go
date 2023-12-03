@@ -43,7 +43,7 @@ func TestEventManager(t *testing.T) {
 		assert.Equal(st, removedId, id)
 	})
 
-	t.Run("sends error event", func(st *testing.T) {
+	t.Run("reports fatal error event", func(st *testing.T) {
 		eventManager := event.NewEventManager()
 
 		listener := make(chan event.Event)
@@ -55,10 +55,29 @@ func TestEventManager(t *testing.T) {
 			Payload: struct{}{},
 		})
 
-		eventManager.SendFatalError(errors.New("test error"))
+		eventManager.ReportFatalError(errors.New("fatal test error"))
 
 		result := <-listener
 
 		assert.Equal(st, result.Type, event.FatalErrorEventType)
+	})
+
+	t.Run("reports error event", func(st *testing.T) {
+		eventManager := event.NewEventManager()
+
+		listener := make(chan event.Event)
+
+		eventManager.RegisterListener(event.ErrorEventType, listener)
+
+		eventManager.Send(event.Event{
+			Type:    "a-different-type",
+			Payload: struct{}{},
+		})
+
+		eventManager.ReportError(errors.New("test error"))
+
+		result := <-listener
+
+		assert.Equal(st, result.Type, event.ErrorEventType)
 	})
 }

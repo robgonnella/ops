@@ -71,7 +71,7 @@ func (s *ScannerService) Stop() {
 	s.scanner.Stop()
 }
 
-func (s *ScannerService) SetConfig(conf config.Config) {
+func (s *ScannerService) SetConfigAndScanner(conf config.Config, netScanner Scanner) {
 	if s.monitoring {
 		s.pause()
 		defer func() {
@@ -79,6 +79,7 @@ func (s *ScannerService) SetConfig(conf config.Config) {
 		}()
 	}
 	s.conf = conf
+	s.scanner = netScanner
 }
 
 // private
@@ -147,7 +148,7 @@ func (s *ScannerService) pollNetwork() error {
 			}
 		case err := <-s.errorChan:
 			s.log.Error().Err(err).Msg("discovery service encountered an error")
-			s.eventManager.SendFatalError(err)
+			s.eventManager.ReportFatalError(err)
 			return err
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel

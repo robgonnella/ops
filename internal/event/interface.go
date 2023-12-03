@@ -5,5 +5,6 @@ type Manager interface {
 	RegisterListener(eventType EventType, listener chan Event) int
 	RemoveListener(id int) int
 	Send(event Event)
-	SendFatalError(err error)
+	ReportFatalError(err error)
+	ReportError(err error)
 }

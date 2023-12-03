@@ -11,6 +11,8 @@ import (
 	"github.com/robgonnella/ops/internal/event"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_event "github.com/robgonnella/ops/internal/mock/event"
+	"github.com/robgonnella/ops/internal/test_util"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
@@ -18,6 +20,10 @@ func TestDiscoveryService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	defer ctrl.Finish()
+
+	ifaceName, err := test_util.GetTestInterfaceName()
+
+	assert.NoError(t, err)
 
 	conf := config.Config{
 		ID:   "1",
@@ -27,7 +33,7 @@ func TestDiscoveryService(t *testing.T) {
 			Identity: "identity",
 			Port:     "22",
 		},
-		CIDR: "172.100.1.1/24",
+		Interface: ifaceName,
 	}
 
 	t.Run("monitors network for offline servers", func(st *testing.T) {
