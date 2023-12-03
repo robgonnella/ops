@@ -5,13 +5,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	mock_discovery "github.com/robgonnella/ops/internal/mock/discovery"
 	mock_event "github.com/robgonnella/ops/internal/mock/event"
+	"go.uber.org/mock/gomock"
 )
 
 func TestDiscoveryService(t *testing.T) {
@@ -37,11 +37,12 @@ func TestDiscoveryService(t *testing.T) {
 
 		resultChan := make(chan *scanner.ScanResult)
 
+		mockScanner.EXPECT().Results().Return(resultChan).AnyTimes()
+
 		service := discovery.NewScannerService(
 			conf,
 			mockScanner,
 			mockDetailScanner,
-			resultChan,
 			mockEventManager,
 		)
 
@@ -108,13 +109,14 @@ func TestDiscoveryService(t *testing.T) {
 
 		resultChan := make(chan *scanner.ScanResult)
 
+		mockScanner.EXPECT().Results().Return(resultChan).AnyTimes()
+
 		mac, _ := net.ParseMAC("00:00:00:00:00:00")
 
 		service := discovery.NewScannerService(
 			conf,
 			mockScanner,
 			mockDetailScanner,
-			resultChan,
 			mockEventManager,
 		)
 
@@ -180,13 +182,14 @@ func TestDiscoveryService(t *testing.T) {
 
 		resultChan := make(chan *scanner.ScanResult)
 
+		mockScanner.EXPECT().Results().Return(resultChan).AnyTimes()
+
 		mac, _ := net.ParseMAC("aa:bb:cc:dd:ee:ff")
 
 		service := discovery.NewScannerService(
 			conf,
 			mockScanner,
 			mockDetailScanner,
-			resultChan,
 			mockEventManager,
 		)
 

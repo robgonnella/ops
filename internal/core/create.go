@@ -56,8 +56,6 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 		}
 	}
 
-	scanResults := make(chan *scanner.ScanResult)
-
 	ports := []string{conf.SSH.Port}
 
 	for _, c := range conf.SSH.Overrides {
@@ -77,7 +75,6 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 		[]string{},
 		ports,
 		54321,
-		scanResults,
 		scanner.WithVendorInfo(vendorRepo),
 	)
 
@@ -87,7 +84,6 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 		*conf,
 		netScanner,
 		detailScanner,
-		scanResults,
 		eventManager,
 	)
 

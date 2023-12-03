@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 
+	"github.com/robgonnella/go-lanscan/pkg/scanner"
 	"github.com/robgonnella/ops/internal/config"
 )
 
@@ -17,6 +18,7 @@ type DetailScanner interface {
 type Scanner interface {
 	Scan() error
 	Stop()
+	Results() chan *scanner.ScanResult
 }
 
 // Service interface for monitoring a network

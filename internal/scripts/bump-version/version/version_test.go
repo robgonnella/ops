@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	mock_version "github.com/robgonnella/ops/internal/mock/scripts/bump-version/version"
 	"github.com/robgonnella/ops/internal/scripts/bump-version/version"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestBumpVersion(t *testing.T) {
