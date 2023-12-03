@@ -57,8 +57,8 @@ func (t *ServerTable) Primitive() tview.Primitive {
 }
 
 // UpdateTable updates the table with the incoming server from the event
-func (t *ServerTable) UpdateTable(evt *event.Event) {
-	payload, ok := evt.Payload.(*discovery.DiscoveryResult)
+func (t *ServerTable) UpdateTable(evt event.Event) {
+	payload, ok := evt.Payload.(discovery.DiscoveryResult)
 
 	if !ok {
 		return

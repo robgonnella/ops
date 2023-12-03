@@ -2,6 +2,8 @@ package discovery
 
 import (
 	"context"
+
+	"github.com/robgonnella/ops/internal/config"
 )
 
 //go:generate mockgen -destination=../mock/discovery/mock_discovery.go -package=mock_discovery . DetailScanner,Scanner
@@ -20,5 +22,6 @@ type Scanner interface {
 // Service interface for monitoring a network
 type Service interface {
 	MonitorNetwork() error
+	SetConfig(conf config.Config)
 	Stop()
 }

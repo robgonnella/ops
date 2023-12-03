@@ -8,6 +8,7 @@ import (
 
 	"github.com/robgonnella/ops/cli/commands"
 	app_info "github.com/robgonnella/ops/internal/app-info"
+	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui"
 	"github.com/spf13/viper"
@@ -59,11 +60,14 @@ func main() {
 		log.Fatal().Err(err).Msg("")
 	}
 
+	eventManager := event.NewEventManager()
+
 	appUI := ui.NewUI()
 
 	// Get the "root" cobra cli command
 	cmd := commands.Root(&commands.CommandProps{
-		UI: appUI,
+		UI:           appUI,
+		EventManager: eventManager,
 	})
 
 	// execute the cobra command and exit with error code if necessary

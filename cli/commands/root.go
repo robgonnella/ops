@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui"
 	"github.com/rs/zerolog"
@@ -9,7 +10,8 @@ import (
 
 // CommandProps injected props that can be made available to all commands
 type CommandProps struct {
-	UI *ui.UI
+	UI           *ui.UI
+	EventManager event.Manager
 }
 
 // Root builds and returns our root command
@@ -40,7 +42,7 @@ func Root(props *CommandProps) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return props.UI.Launch(debug)
+			return props.UI.Launch(props.EventManager, debug)
 		},
 	}
 

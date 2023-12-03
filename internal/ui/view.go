@@ -9,9 +9,9 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/ops/internal/config"
 	"github.com/robgonnella/ops/internal/core"
+	"github.com/robgonnella/ops/internal/discovery"
 	"github.com/robgonnella/ops/internal/event"
 	"github.com/robgonnella/ops/internal/logger"
 	"github.com/robgonnella/ops/internal/ui/component"
@@ -21,14 +21,6 @@ import (
 // viewOption provides a way to modify our view during initialization
 // this is helpful when restarting the view and focusing a specific page
 type viewOption func(v *view)
-
-// withFocusedView sets the option to focus a specific view
-// during initialization
-func withFocusedView(name string) viewOption {
-	return func(v *view) {
-		v.focusedName = name
-	}
-}
 
 func withShowError(msg string) viewOption {
 	return func(v *view) {
@@ -48,8 +40,9 @@ type view struct {
 	contextTable           *component.ConfigContext
 	contextToDelete        string
 	appCore                *core.Core
-	eventUpdateChan        chan *event.Event
-	serverUpdateChan       chan *event.Event
+	eventManager           event.Manager
+	eventUpdateChan        chan event.Event
+	serverUpdateChan       chan event.Event
 	eventListenerIDs       []int
 	prevFocusedName        string
 	focusedName            string
@@ -59,12 +52,13 @@ type view struct {
 }
 
 // returns a new instance of view
-func newView(allConfigs []*config.Config, appCore *core.Core) *view {
+func newView(allConfigs []*config.Config, appCore *core.Core, eventManager event.Manager) *view {
 	log := logger.New()
 
 	v := &view{
-		log:     log,
-		appCore: appCore,
+		log:          log,
+		appCore:      appCore,
+		eventManager: eventManager,
 	}
 
 	v.initialize(allConfigs)
@@ -121,8 +115,8 @@ func (v *view) initialize(
 		AddItem(v.header.Primitive(), 12, 1, false).
 		AddItem(v.pages, 0, 1, true)
 
-	v.serverUpdateChan = make(chan *event.Event)
-	v.eventUpdateChan = make(chan *event.Event)
+	v.serverUpdateChan = make(chan event.Event)
+	v.eventUpdateChan = make(chan event.Event)
 	v.eventListenerIDs = []int{}
 
 	v.focusedName = "servers"
@@ -174,7 +168,18 @@ func (v *view) onConfigureFormUpdate(conf config.Config) {
 		return
 	}
 
-	v.restart(withFocusedView("context"))
+	confs, err := v.appCore.GetConfigs()
+
+	if err != nil {
+		v.log.Error().Err(err).Msg("failed to get configs")
+		v.showErrorModal("Failed to retrieve configs")
+		return
+	}
+
+	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
+	v.configureForm.UpdateConfig(v.appCore.Conf())
+
+	v.onActionSubmit(v.prevFocusedName)
 }
 
 // creates a new config with results from config form inputs
@@ -194,6 +199,7 @@ func (v *view) onConfigureFormCreate(conf config.Config) {
 	}
 
 	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
+	v.configureForm.UpdateConfig(v.appCore.Conf())
 
 	v.focus("context")
 }
@@ -211,7 +217,18 @@ func (v *view) onContextSelect(id string) {
 		return
 	}
 
-	v.restart()
+	confs, err := v.appCore.GetConfigs()
+
+	if err != nil {
+		v.log.Error().Err(err).Msg("failed to get configs")
+		v.showErrorModal("Failed to retrieve configs")
+		return
+	}
+
+	v.contextTable.UpdateConfigs(v.appCore.Conf().ID, confs)
+	v.configureForm.UpdateConfig(v.appCore.Conf())
+
+	v.focus("servers")
 }
 
 // dismisses confirmation modal when deleting a context
@@ -260,7 +277,7 @@ func (v *view) deleteContext() {
 
 	if v.contextToDelete == currentConfig {
 		// deleted current context - restart app
-		v.restart(withFocusedView("context"))
+		v.showErrorModal("cannot delete current active context")
 	} else {
 		confs, err := v.appCore.GetConfigs()
 
@@ -489,38 +506,17 @@ func (v *view) getFocusNamePrimitive(name string) tview.Primitive {
 // this requires a full restart including re-instantiation of entire backend
 func (v *view) stop() {
 	for _, id := range v.eventListenerIDs {
-		v.appCore.RemoveEventListener(id)
+		v.eventManager.RemoveListener(id)
 	}
 	v.eventListenerIDs = []int{}
-	v.appCore.Stop()
 	v.app.Stop()
+	restoreStdout()
+	go v.appCore.Stop()
 }
 
-// restarts the entire application including re-instantiation of entire backend
+// restarts the ui
 func (v *view) restart(options ...viewOption) {
 	v.stop()
-
-	restoreStdout()
-
-	conf := v.appCore.Conf()
-
-	netInfo, err := network.NewDefaultNetwork()
-
-	if err != nil {
-		v.log.Fatal().Err(err).Msg("failed to get default network info")
-	}
-
-	appCore, err := core.CreateNewAppCore(netInfo)
-
-	if err != nil {
-		v.log.Fatal().Err(err).Msg("failed to restart app core")
-	}
-
-	if err := appCore.SetConfig(conf.ID); err != nil {
-		v.log.Fatal().Err(err).Msg("failed to set config on restart")
-	}
-
-	v.appCore = appCore
 
 	allConfigs, err := v.appCore.GetConfigs()
 
@@ -544,18 +540,21 @@ func (v *view) run() error {
 	v.bindKeys()
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
-		v.appCore.RegisterEventListener(v.eventUpdateChan),
+		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.eventUpdateChan),
+		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.eventUpdateChan),
 	)
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
-		v.appCore.RegisterEventListener(v.serverUpdateChan),
+		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.serverUpdateChan),
+		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.serverUpdateChan),
 	)
+	fatalErrorListener := make(chan event.Event)
+	v.eventManager.RegisterListener(event.FatalErrorEventType, fatalErrorListener)
 	v.processBackgroundEventUpdates()
-	errorChan := make(chan error)
-	v.appCore.StartDaemon(errorChan)
+	v.appCore.StartDaemon()
 	go func() {
-		err := <-errorChan
-		v.showFatalErrorModal(err)
+		evt := <-fatalErrorListener
+		v.showFatalErrorModal(evt.Payload.(error))
 		v.app.Draw()
 	}()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
