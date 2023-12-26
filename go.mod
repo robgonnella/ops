@@ -8,7 +8,7 @@ require (
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/magiconair/properties v1.8.7
 	github.com/rivo/tview v0.0.0-20231206124440-5f078138442e
-	github.com/robgonnella/go-lanscan v1.14.0
+	github.com/robgonnella/go-lanscan v1.14.1
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
