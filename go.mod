@@ -3,17 +3,17 @@ module github.com/robgonnella/ops
 go 1.21
 
 require (
-	github.com/gdamore/tcell/v2 v2.6.0
-	github.com/google/uuid v1.4.0
+	github.com/gdamore/tcell/v2 v2.7.0
+	github.com/google/uuid v1.5.0
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e
 	github.com/magiconair/properties v1.8.7
-	github.com/rivo/tview v0.0.0-20231126152417-33a1d271f2b6
-	github.com/robgonnella/go-lanscan v1.12.0
+	github.com/rivo/tview v0.0.0-20231206124440-5f078138442e
+	github.com/robgonnella/go-lanscan v1.14.0
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/viper v1.17.0
+	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/mock v0.3.0
+	go.uber.org/mock v0.4.0
 	gorm.io/driver/sqlite v1.5.4
 	gorm.io/gorm v1.25.5
 )
@@ -33,9 +33,9 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
-	github.com/mattn/go-sqlite3 v1.14.18 // indirect
+	github.com/mattn/go-sqlite3 v1.14.19 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
@@ -49,7 +49,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/thediveo/netdb v1.0.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/exp v0.0.0-20231127185646-65229373498e // indirect
+	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
