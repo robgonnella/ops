@@ -44,6 +44,7 @@ type view struct {
 	eventManager           event.Manager
 	eventUpdateChan        chan event.Event
 	serverUpdateChan       chan event.Event
+	errorListener          chan event.Event
 	eventListenerIDs       []int
 	prevFocusedName        string
 	focusedName            string
@@ -118,9 +119,15 @@ func (v *view) initialize(
 
 	v.serverUpdateChan = make(chan event.Event)
 	v.eventUpdateChan = make(chan event.Event)
+	v.errorListener = make(chan event.Event)
 	v.eventListenerIDs = []int{}
 
 	v.focusedName = "servers"
+
+	v.bindKeys()
+	v.registerEventListeners()
+	v.processBackgroundEventUpdates()
+	v.processErrorEvents()
 
 	go func() {
 		for _, o := range options {
@@ -328,7 +335,7 @@ func (v *view) showFatalErrorModal(errMsg string) {
 }
 
 func (v *view) dismissFatalErrorModal() {
-	v.fullRestart()
+	v.restart()
 }
 
 // binds global key handlers
@@ -438,8 +445,6 @@ func (v *view) onSSH(ip string) {
 		ip,
 	)
 
-	restoreStdout()
-
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -447,37 +452,11 @@ func (v *view) onSSH(ip string) {
 	err := cmd.Run()
 
 	if err != nil {
-		v.partialRestart(
-			withShowError("failed to ssh to " + ip + ": " + err.Error()),
-		)
+		v.restart(withShowError("failed to ssh to " + ip + ": " + err.Error()))
 		return
 	}
 
-	v.partialRestart()
-}
-
-// handle incoming events
-func (v *view) processBackgroundEventUpdates() {
-	go func() {
-		for {
-			select {
-			case evt, ok := <-v.eventUpdateChan:
-				if !ok {
-					return
-				}
-				v.app.QueueUpdateDraw(func() {
-					v.eventTable.UpdateTable(evt)
-				})
-			case evt, ok := <-v.serverUpdateChan:
-				if !ok {
-					return
-				}
-				v.app.QueueUpdateDraw(func() {
-					v.serverTable.UpdateTable(evt)
-				})
-			}
-		}
-	}()
+	v.restart()
 }
 
 // maps names to primitives for focusing
@@ -508,28 +487,8 @@ func (v *view) stop() {
 	go v.appCore.Stop()
 }
 
-// restarts the ui
-func (v *view) partialRestart(options ...viewOption) {
-	v.stop()
-
-	allConfigs, err := v.appCore.GetConfigs()
-
-	if err != nil {
-		v.log.Fatal().Err(err).Msg("failed to retrieve configs")
-	}
-
-	maskStdout()
-
-	v.initialize(allConfigs, options...)
-
-	if err := v.run(); err != nil {
-		restoreStdout()
-		v.log.Fatal().Err(err).Msg("failed to restart view")
-	}
-}
-
 // restarts the entire application including re-instantiation of entire backend
-func (v *view) fullRestart(options ...viewOption) {
+func (v *view) restart(options ...viewOption) {
 	v.stop()
 
 	restoreStdout()
@@ -570,10 +529,8 @@ func (v *view) fullRestart(options ...viewOption) {
 	}
 }
 
-// sets up global key handlers, registers event listeners, sets up processing
-// for channel updates, starts backend processes, and starts terminal ui
-func (v *view) run() error {
-	v.bindKeys()
+// registers event listeners
+func (v *view) registerEventListeners() {
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
 		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.eventUpdateChan),
@@ -584,16 +541,41 @@ func (v *view) run() error {
 		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.serverUpdateChan),
 		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.serverUpdateChan),
 	)
-	errorListener := make(chan event.Event)
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
-		v.eventManager.RegisterListener(event.ErrorEventType, errorListener),
-		v.eventManager.RegisterListener(event.FatalErrorEventType, errorListener),
+		v.eventManager.RegisterListener(event.ErrorEventType, v.errorListener),
+		v.eventManager.RegisterListener(event.FatalErrorEventType, v.errorListener),
 	)
-	v.processBackgroundEventUpdates()
-	v.appCore.StartDaemon()
+}
+
+// handle incoming server events
+func (v *view) processBackgroundEventUpdates() {
 	go func() {
-		for evt := range errorListener {
+		for {
+			select {
+			case evt, ok := <-v.eventUpdateChan:
+				if !ok {
+					return
+				}
+				v.app.QueueUpdateDraw(func() {
+					v.eventTable.UpdateTable(evt)
+				})
+			case evt, ok := <-v.serverUpdateChan:
+				if !ok {
+					return
+				}
+				v.app.QueueUpdateDraw(func() {
+					v.serverTable.UpdateTable(evt)
+				})
+			}
+		}
+	}()
+}
+
+// handle incoming error events
+func (v *view) processErrorEvents() {
+	go func() {
+		for evt := range v.errorListener {
 			switch evt.Type {
 			case event.FatalErrorEventType:
 				v.showFatalErrorModal(evt.Payload.(error).Error())
@@ -604,5 +586,10 @@ func (v *view) run() error {
 			}
 		}
 	}()
+}
+
+// start application
+func (v *view) run() error {
+	v.appCore.StartDaemon()
 	return v.app.SetRoot(v.root, true).EnableMouse(true).Run()
 }
