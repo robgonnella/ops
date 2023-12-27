@@ -7,7 +7,7 @@ import (
 	"github.com/robgonnella/ops/internal/ui/style"
 )
 
-// EvenTable table for viewing all incoming events in realtime
+// EventTable table for viewing all incoming events in realtime
 type EventTable struct {
 	table         *tview.Table
 	columnHeaders []string

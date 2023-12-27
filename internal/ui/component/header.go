@@ -109,6 +109,7 @@ func (h *Header) Primitive() tview.Primitive {
 	return h.root
 }
 
+// UpdateConfAndNetworkInfo updates config and network info for this component
 func (h *Header) UpdateConfAndNetworkInfo(conf config.Config, netInfo network.Network) {
 	h.conf = conf
 	h.networkInfo = netInfo

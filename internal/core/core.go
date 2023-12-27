@@ -10,6 +10,7 @@ import (
 	"github.com/robgonnella/ops/internal/logger"
 )
 
+// ScannerFactory is a function that returns a new instance of a Scanner
 type ScannerFactory func(netInfo network.Network, conf config.Config) (discovery.Scanner, error)
 
 // Core represents our core data structure through which the ui can interact
@@ -64,6 +65,7 @@ func (c *Core) Conf() config.Config {
 	return *c.conf
 }
 
+// NetworkInfo returns the core's network interface
 func (c *Core) NetworkInfo() network.Network {
 	return c.networkInfo
 }
@@ -164,8 +166,8 @@ func (c *Core) Monitor() error {
 	evtChan := make(chan event.Event)
 	if c.debug {
 		c.registeredListeners = append(c.registeredListeners,
-			c.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, evtChan),
-			c.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, evtChan),
+			c.eventManager.RegisterListener(discovery.ArpUpdateEvent, evtChan),
+			c.eventManager.RegisterListener(discovery.SynUpdateEvent, evtChan),
 			c.eventManager.RegisterListener(event.FatalErrorEventType, evtChan),
 		)
 
@@ -204,5 +206,9 @@ func (c *Core) Monitor() error {
 
 // StartDaemon starts the network monitoring processes in a goroutine
 func (c *Core) StartDaemon() {
-	go c.Monitor()
+	go func() {
+		if err := c.Monitor(); err != nil {
+			c.eventManager.ReportFatalError(err)
+		}
+	}()
 }

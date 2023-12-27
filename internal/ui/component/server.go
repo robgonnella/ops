@@ -92,8 +92,8 @@ func (t *ServerTable) UpdateTable(evt event.Event) {
 	})
 
 	exists := idx > -1
-	isARP := evt.Type == discovery.DiscoveryArpUpdateEvent
-	isSYN := evt.Type == discovery.DiscoverySynUpdateEvent
+	isARP := evt.Type == discovery.ArpUpdateEvent
+	isSYN := evt.Type == discovery.SynUpdateEvent
 
 	if exists && isARP {
 		// we already have this entry no need to do anything else

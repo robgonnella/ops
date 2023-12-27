@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	DiscoveryArpUpdateEvent = "DISCOVERY_ARP_UPDATE"
-	DiscoverySynUpdateEvent = "DISCOVERY_SYN_UPDATE"
+	// ArpUpdateEvent represents an ARP update event
+	ArpUpdateEvent = "DISCOVERY_ARP_UPDATE"
+	// SynUpdateEvent represents an SYN update event
+	SynUpdateEvent = "DISCOVERY_SYN_UPDATE"
 )
 
 // ScannerService implements the Service interface for monitoring a network
@@ -69,11 +71,16 @@ func (s *ScannerService) Stop() {
 	s.scanner.Stop()
 }
 
+// SetConfigAndScanner sets the config and scanner to use when performing network discovery
 func (s *ScannerService) SetConfigAndScanner(conf config.Config, netScanner Scanner) {
 	if s.monitoring {
 		s.pause()
 		defer func() {
-			go s.pollNetwork()
+			go func() {
+				if err := s.pollNetwork(); err != nil {
+					s.eventManager.ReportFatalError(err)
+				}
+			}()
 		}()
 	}
 	s.conf = conf
@@ -115,7 +122,7 @@ func (s *ScannerService) pollNetwork() error {
 			case scanner.ARPResult:
 				res := r.Payload.(*scanner.ArpScanResult)
 				dr := &DiscoveryResult{
-					Type:     DiscoveryArpUpdateEvent,
+					Type:     ArpUpdateEvent,
 					ID:       res.MAC.String(),
 					IP:       res.IP.String(),
 					Hostname: "Unknown",
@@ -131,7 +138,7 @@ func (s *ScannerService) pollNetwork() error {
 			case scanner.SYNResult:
 				res := r.Payload.(*scanner.SynScanResult)
 				dr := &DiscoveryResult{
-					Type:     DiscoverySynUpdateEvent,
+					Type:     SynUpdateEvent,
 					ID:       res.MAC.String(),
 					IP:       res.IP.String(),
 					Hostname: "",
@@ -182,7 +189,7 @@ func (s *ScannerService) getConfiguredSSHPort(result *DiscoveryResult) *string {
 }
 
 func (s *ScannerService) handleArpDiscoveryResult(result *DiscoveryResult) {
-	if result.Type != DiscoveryArpUpdateEvent {
+	if result.Type != ArpUpdateEvent {
 		return
 	}
 
@@ -207,7 +214,7 @@ func (s *ScannerService) handleArpDiscoveryResult(result *DiscoveryResult) {
 
 // handle results found during polling
 func (s *ScannerService) handleSynDiscoveryResult(result *DiscoveryResult) {
-	if result.Type != DiscoverySynUpdateEvent {
+	if result.Type != SynUpdateEvent {
 		return
 	}
 

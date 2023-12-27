@@ -21,16 +21,18 @@ type JSONRepo struct {
 }
 
 // NewJSONRepo returns a new ops repo for flat yaml file
-func NewJSONRepo(configPath string) *JSONRepo {
+func NewJSONRepo(configPath string) (*JSONRepo, error) {
 	repo := &JSONRepo{
 		configPath: configPath,
 		configs:    []*Config{},
 		mux:        sync.Mutex{},
 	}
 
-	repo.load()
+	if err := repo.load(); err != nil {
+		return nil, err
+	}
 
-	return repo
+	return repo, nil
 }
 
 // Get returns a config from the db
@@ -141,6 +143,7 @@ func (r *JSONRepo) Delete(id string) error {
 	return r.write()
 }
 
+// GetByInterface returns config associated with specific interface name
 func (r *JSONRepo) GetByInterface(ifaceName string) (*Config, error) {
 	r.mux.Lock()
 	defer r.mux.Unlock()
