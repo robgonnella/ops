@@ -39,7 +39,13 @@ func getDefaultConfig(networkInfo network.Network) *config.Config {
 // CreateNewAppCore creates and returns a new instance of *core.Core
 func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, debug bool) (*Core, error) {
 	configPath := viper.Get("config-path").(string)
-	configRepo := config.NewJSONRepo(configPath)
+
+	configRepo, err := config.NewJSONRepo(configPath)
+
+	if err != nil {
+		return nil, err
+	}
+
 	configService := config.NewConfigService(configRepo)
 
 	conf, err := configService.GetByInterface(networkInfo.Interface().Name)

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 )
 
+// TemplateGenerator implements the Generator interface using templates
 type TemplateGenerator struct {
 	outFile      string
 	outDir       string
@@ -13,6 +14,7 @@ type TemplateGenerator struct {
 	templateName string
 }
 
+// NewTemplateGenerator returns a new instance of TemplateGenerator
 func NewTemplateGenerator(outFile, templatePath string) *TemplateGenerator {
 	return &TemplateGenerator{
 		outFile:      outFile,
@@ -22,6 +24,7 @@ func NewTemplateGenerator(outFile, templatePath string) *TemplateGenerator {
 	}
 }
 
+// Generate implements the Generate method using templates
 func (t *TemplateGenerator) Generate(data VersionData) error {
 	if err := os.MkdirAll(t.outDir, 0751); err != nil {
 		return err

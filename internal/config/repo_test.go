@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -23,12 +24,45 @@ func assertEqualConf(t *testing.T, expected, actual *config.Config) {
 
 func TestConfigYamlRepo(t *testing.T) {
 	testConfigFile := "config.json"
+	file, err := os.Create(testConfigFile)
+
+	assert.NoError(t, err)
 
 	defer func() {
 		os.RemoveAll(testConfigFile)
 	}()
 
-	repo := config.NewJSONRepo(testConfigFile)
+	conf := config.Config{
+		ID:   "1",
+		Name: "myConfig",
+		SSH: config.SSHConfig{
+			User:      "user",
+			Identity:  "./id_rsa",
+			Port:      "22",
+			Overrides: []config.SSHOverride{},
+		},
+	}
+
+	data, err := json.Marshal(conf)
+
+	assert.NoError(t, err)
+
+	_, err = file.WriteString(string(data))
+	file.Close()
+
+	assert.NoError(t, err)
+
+	repo, err := config.NewJSONRepo(testConfigFile)
+
+	assert.NoError(t, err)
+
+	t.Run("returns error if cannot instantiate instance", func(st *testing.T) {
+		repo, err := config.NewJSONRepo("nope.json")
+
+		assert.Nil(st, repo)
+		assert.Error(t, err)
+
+	})
 
 	t.Run("returns record not found error", func(st *testing.T) {
 		_, err := repo.Get("10")

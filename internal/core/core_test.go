@@ -264,9 +264,9 @@ func TestCore(t *testing.T) {
 			})
 
 		expectedEvent := event.Event{
-			Type: discovery.DiscoverySynUpdateEvent,
+			Type: discovery.SynUpdateEvent,
 			Payload: discovery.DiscoveryResult{
-				Type:     discovery.DiscoverySynUpdateEvent,
+				Type:     discovery.SynUpdateEvent,
 				ID:       mac.String(),
 				Hostname: details.Hostname,
 				IP:       "127.0.0.1",

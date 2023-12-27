@@ -119,6 +119,7 @@ func (f *ConfigureForm) Primitive() tview.Primitive {
 	return f.root
 }
 
+// UpdateConfig updates the config for this component
 func (f *ConfigureForm) UpdateConfig(conf config.Config) {
 	f.conf = conf
 }

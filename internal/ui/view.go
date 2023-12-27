@@ -484,7 +484,11 @@ func (v *view) stop() {
 	v.eventListenerIDs = []int{}
 	v.app.Stop()
 	restoreStdout()
-	go v.appCore.Stop()
+	go func() {
+		if err := v.appCore.Stop(); err != nil {
+			v.eventManager.ReportFatalError(err)
+		}
+	}()
 }
 
 // restarts the entire application including re-instantiation of entire backend
@@ -533,13 +537,13 @@ func (v *view) restart(options ...viewOption) {
 func (v *view) registerEventListeners() {
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
-		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.eventUpdateChan),
-		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.eventUpdateChan),
+		v.eventManager.RegisterListener(discovery.ArpUpdateEvent, v.eventUpdateChan),
+		v.eventManager.RegisterListener(discovery.SynUpdateEvent, v.eventUpdateChan),
 	)
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,
-		v.eventManager.RegisterListener(discovery.DiscoveryArpUpdateEvent, v.serverUpdateChan),
-		v.eventManager.RegisterListener(discovery.DiscoverySynUpdateEvent, v.serverUpdateChan),
+		v.eventManager.RegisterListener(discovery.ArpUpdateEvent, v.serverUpdateChan),
+		v.eventManager.RegisterListener(discovery.SynUpdateEvent, v.serverUpdateChan),
 	)
 	v.eventListenerIDs = append(
 		v.eventListenerIDs,

@@ -1,5 +1,6 @@
 package config
 
+// nolint:revive
 // ConfigService is an implementation of the config.Service interface
 type ConfigService struct {
 	repo Repo
@@ -20,6 +21,7 @@ func (s *ConfigService) GetAll() ([]*Config, error) {
 	return s.repo.GetAll()
 }
 
+// GetByInterface returns config associated with given interface name
 func (s *ConfigService) GetByInterface(ifaceName string) (*Config, error) {
 	return s.repo.GetByInterface(ifaceName)
 }

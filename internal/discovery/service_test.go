@@ -82,9 +82,9 @@ func TestDiscoveryService(t *testing.T) {
 		wg.Add(1)
 
 		expectedEvt := event.Event{
-			Type: discovery.DiscoverySynUpdateEvent,
+			Type: discovery.SynUpdateEvent,
 			Payload: discovery.DiscoveryResult{
-				Type:     discovery.DiscoverySynUpdateEvent,
+				Type:     discovery.SynUpdateEvent,
 				ID:       mac.String(),
 				Hostname: "Unknown",
 				IP:       "127.0.0.1",
@@ -155,9 +155,9 @@ func TestDiscoveryService(t *testing.T) {
 		wg.Add(1)
 
 		expectedEvt := event.Event{
-			Type: discovery.DiscoverySynUpdateEvent,
+			Type: discovery.SynUpdateEvent,
 			Payload: discovery.DiscoveryResult{
-				Type:     discovery.DiscoverySynUpdateEvent,
+				Type:     discovery.SynUpdateEvent,
 				ID:       mac.String(),
 				Hostname: "Unknown",
 				IP:       "127.0.0.1",
@@ -234,9 +234,9 @@ func TestDiscoveryService(t *testing.T) {
 		mockScanner.EXPECT().Stop()
 
 		expectedEvt := event.Event{
-			Type: discovery.DiscoverySynUpdateEvent,
+			Type: discovery.SynUpdateEvent,
 			Payload: discovery.DiscoveryResult{
-				Type:     discovery.DiscoverySynUpdateEvent,
+				Type:     discovery.SynUpdateEvent,
 				ID:       mac.String(),
 				Hostname: "fancy-hostname",
 				IP:       "127.0.0.1",

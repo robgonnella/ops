@@ -27,6 +27,7 @@ type Config struct {
 	Interface string    `json:"interface"`
 }
 
+// Configs represents our collection of json configs
 type Configs struct {
 	Configs []*Config `json:"configs"`
 }

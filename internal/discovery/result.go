@@ -26,6 +26,7 @@ type Port struct {
 	Status PortStatus
 }
 
+// nolint:revive
 // DiscoveryResult represents our discovered device on the network
 type DiscoveryResult struct {
 	Type     string
