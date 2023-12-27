@@ -58,8 +58,6 @@ func NewScannerService(
 
 // MonitorNetwork polls the network to discover and track devices
 func (s *ScannerService) MonitorNetwork() error {
-	s.log.Info().Msg("Starting network discovery")
-
 	// blocking call that continuously scans the network on an interval
 	return s.pollNetwork()
 }
@@ -95,6 +93,7 @@ func (s *ScannerService) pollNetwork() error {
 	// start first scan
 	// always scan in goroutine to prevent blocking result channel
 	go func() {
+		s.log.Info().Msg("starting network scan")
 		if err := s.scanner.Scan(); err != nil {
 			s.errorChan <- err
 		}
@@ -105,7 +104,7 @@ func (s *ScannerService) pollNetwork() error {
 	for {
 		select {
 		case <-s.ctx.Done():
-			s.log.Info().Msg("Network polling stopped")
+			s.log.Info().Msg("network polling stopped")
 			ticker.Stop()
 			return s.ctx.Err()
 		case <-s.pauseChan:
@@ -153,6 +152,7 @@ func (s *ScannerService) pollNetwork() error {
 		case <-ticker.C:
 			// always scan in goroutine to prevent blocking result channel
 			go func() {
+				s.log.Info().Msg("starting network scan")
 				if err := s.scanner.Scan(); err != nil {
 					s.errorChan <- err
 				}
