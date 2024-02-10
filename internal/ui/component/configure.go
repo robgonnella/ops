@@ -70,15 +70,12 @@ func createOverrideInputs(conf config.Config) (*tview.InputField, *tview.InputFi
 
 	overrideSSHUser := tview.NewInputField()
 	overrideSSHUser.SetLabel("Override SSH User: ")
-	overrideSSHUser.SetText(conf.SSH.User)
 
 	overrideSSHIdentity := tview.NewInputField()
 	overrideSSHIdentity.SetLabel("Override SSH Identity: ")
-	overrideSSHIdentity.SetText(conf.SSH.Identity)
 
 	overrideSSHPort := tview.NewInputField()
 	overrideSSHPort.SetLabel("Override SSH Port: ")
-	overrideSSHPort.SetText(conf.SSH.Port)
 
 	return overrideTarget, overrideSSHUser, overrideSSHIdentity, overrideSSHPort
 }
@@ -186,6 +183,11 @@ func (f *ConfigureForm) addFormButtons() {
 			"identity": identity,
 			"port":     port,
 		})
+
+		// add defaults when creating a new override
+		user.SetText(f.conf.SSH.User)
+		identity.SetText(f.conf.SSH.Identity)
+		port.SetText(f.conf.SSH.Port)
 
 		f.root.
 			AddFormItem(target).
