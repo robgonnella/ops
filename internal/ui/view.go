@@ -335,7 +335,8 @@ func (v *view) showFatalErrorModal(errMsg string) {
 }
 
 func (v *view) dismissFatalErrorModal() {
-	v.restart()
+	v.stop()
+	os.Exit(1)
 }
 
 // binds global key handlers
