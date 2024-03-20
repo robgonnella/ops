@@ -5,6 +5,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/robgonnella/go-lanscan/pkg/network"
 	"github.com/robgonnella/go-lanscan/pkg/oui"
 	"github.com/robgonnella/go-lanscan/pkg/scanner"
@@ -26,6 +27,7 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 	nameGenerator := namegenerator.NewNameGenerator(seed)
 
 	defaultConf := config.Config{
+		ID:   uuid.New().String(),
 		Name: nameGenerator.Generate(),
 		SSH: config.SSHConfig{
 			User:      user,
