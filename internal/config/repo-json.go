@@ -15,17 +15,19 @@ import (
 
 // JSONRepo is our repo implementation for json
 type JSONRepo struct {
-	configPath string
-	configs    []*Config
-	mux        sync.Mutex
+	configPath    string
+	configs       []*Config
+	defaultConfig Config
+	mux           sync.Mutex
 }
 
 // NewJSONRepo returns a new ops repo for flat yaml file
-func NewJSONRepo(configPath string) (*JSONRepo, error) {
+func NewJSONRepo(configPath string, defaultConfig Config) (*JSONRepo, error) {
 	repo := &JSONRepo{
-		configPath: configPath,
-		configs:    []*Config{},
-		mux:        sync.Mutex{},
+		configPath:    configPath,
+		configs:       []*Config{},
+		defaultConfig: defaultConfig,
+		mux:           sync.Mutex{},
 	}
 
 	if err := repo.load(); err != nil {
@@ -192,6 +194,12 @@ func (r *JSONRepo) write() error {
 }
 
 func (r *JSONRepo) load() error {
+	if _, err := os.Stat(r.configPath); errors.Is(err, os.ErrNotExist) {
+		if err := r.createDefaultConfig(); err != nil {
+			return err
+		}
+	}
+
 	file, err := os.Open(r.configPath)
 
 	if err != nil {
@@ -215,6 +223,30 @@ func (r *JSONRepo) load() error {
 	r.configs = configs.Configs
 
 	return nil
+}
+
+func (r *JSONRepo) createDefaultConfig() error {
+	configs := Configs{
+		Configs: []*Config{&r.defaultConfig},
+	}
+
+	file, err := os.OpenFile(r.configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	data, err := json.MarshalIndent(&configs, "", "\t")
+
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(data)
+
+	return err
 }
 
 // helpers

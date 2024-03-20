@@ -17,14 +17,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-// getDefaultConfig creates and returns a default configuration
-func getDefaultConfig(networkInfo network.Network) *config.Config {
+// CreateNewAppCore creates and returns a new instance of *core.Core
+func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, debug bool) (*Core, error) {
+	configPath := viper.Get("config-path").(string)
 	user := viper.Get("user").(string)
 	identity := viper.Get("default-ssh-identity").(string)
 	seed := time.Now().UTC().UnixNano()
 	nameGenerator := namegenerator.NewNameGenerator(seed)
 
-	return &config.Config{
+	defaultConf := config.Config{
 		Name: nameGenerator.Generate(),
 		SSH: config.SSHConfig{
 			User:      user,
@@ -34,13 +35,8 @@ func getDefaultConfig(networkInfo network.Network) *config.Config {
 		},
 		Interface: networkInfo.Interface().Name,
 	}
-}
 
-// CreateNewAppCore creates and returns a new instance of *core.Core
-func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, debug bool) (*Core, error) {
-	configPath := viper.Get("config-path").(string)
-
-	configRepo, err := config.NewJSONRepo(configPath)
+	configRepo, err := config.NewJSONRepo(configPath, defaultConf)
 
 	if err != nil {
 		return nil, err
@@ -52,8 +48,7 @@ func CreateNewAppCore(networkInfo network.Network, eventManager event.Manager, d
 
 	if err != nil {
 		if errors.Is(err, exception.ErrRecordNotFound) {
-			conf = getDefaultConfig(networkInfo)
-			conf, err = configService.Create(conf)
+			conf, err = configService.Create(&defaultConf)
 			if err != nil {
 				return nil, err
 			}
