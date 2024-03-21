@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=../mock/config/mock_config.go -package=mock_config . Repo,Service
 //
+
 // Package mock_config is a generated GoMock package.
 package mock_config
 

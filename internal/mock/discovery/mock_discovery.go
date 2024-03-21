@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=../mock/discovery/mock_discovery.go -package=mock_discovery . DetailScanner,Scanner
 //
+
 // Package mock_discovery is a generated GoMock package.
 package mock_discovery
 
