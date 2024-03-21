@@ -31,7 +31,7 @@ func NewServerTable(hostHostname, hostIP string, OnSSH func(ip string)) *ServerT
 	table := createTable("servers", columnHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
-		if evt.Key() == key.KeyCtrlS {
+		if evt.Rune() == key.Rune_s {
 			row, _ := table.GetSelection()
 			ip := table.GetCell(row, 1).Text
 			OnSSH(ip)
