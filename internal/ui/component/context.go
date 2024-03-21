@@ -24,7 +24,7 @@ func NewConfigContext(
 	table := createTable("Context", colHeaders)
 
 	table.SetInputCapture(func(evt *tcell.EventKey) *tcell.EventKey {
-		if evt.Key() == key.KeyCtrlD {
+		if evt.Rune() == key.Rune_d {
 			row, _ := table.GetSelection()
 
 			id := table.GetCell(row, 0).Text

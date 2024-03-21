@@ -381,7 +381,7 @@ func (v *view) focus(name string) {
 	switch name {
 	case "servers":
 		v.header.RemoveAllExtraLegendKeys()
-		v.header.AddLegendKey("ctrl+s", "ssh to selected machine")
+		v.header.AddLegendKey("s", "ssh to selected machine")
 	case "context":
 		confs, err := v.appCore.GetConfigs()
 
@@ -391,9 +391,10 @@ func (v *view) focus(name string) {
 			return
 		}
 
+		v.header.RemoveAllExtraLegendKeys()
+
 		if len(confs) > 1 {
-			v.header.RemoveAllExtraLegendKeys()
-			v.header.AddLegendKey("ctrl+d", "delete context")
+			v.header.AddLegendKey("d", "delete context")
 			v.header.AddLegendKey("enter", "select new context")
 		}
 	default:
