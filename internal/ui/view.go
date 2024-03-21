@@ -483,13 +483,11 @@ func (v *view) stop() {
 		v.eventManager.RemoveListener(id)
 	}
 	v.eventListenerIDs = []int{}
+	if err := v.appCore.Stop(); err != nil {
+		v.eventManager.ReportFatalError(err)
+	}
 	v.app.Stop()
 	restoreStdout()
-	go func() {
-		if err := v.appCore.Stop(); err != nil {
-			v.eventManager.ReportFatalError(err)
-		}
-	}()
 }
 
 // restarts the entire application including re-instantiation of entire backend

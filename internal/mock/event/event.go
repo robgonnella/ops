@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=../mock/event/event.go -package=mock_event . Manager
 //
+
 // Package mock_event is a generated GoMock package.
 package mock_event
 
